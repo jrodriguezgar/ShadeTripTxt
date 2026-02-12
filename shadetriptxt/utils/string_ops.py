@@ -9,8 +9,7 @@ Author: DatamanEdge
 """
 
 import re
-import unicodedata
-from typing import Optional, List, Set, Union, Tuple, Dict
+from typing import Optional, List
 
 
 # --- Constants & Translation Tables ---
@@ -44,6 +43,20 @@ _FLAT_VOWELS_REPLACE_MAP = {
 }
 
 _FLAT_VOWELS_TABLE = str.maketrans(_FLAT_VOWELS_REPLACE_MAP)
+
+# Translation table for normalize_symbols (single-pass via str.translate)
+_SYMBOLS_TABLE = str.maketrans({
+    "\u00b4": "'", "`": "'", "\u2018": "'", "\u2019": "'",
+    "\u2021": "'", "\u2020": "'", "\u017d": "'",
+    "\u00ab": '"', "\u00bb": '"', "\u201c": '"', "\u201d": '"',
+    "\u2014": "-", "\u2013": "-",
+    "\u00a7": "\u00ba", "\u00a5": "\u00d1"
+})
+
+# Pre-built frozenset for erase_specialchar base allowed characters
+_BASE_ALLOWED_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\u00f1\u00d1\u00e1\u00e9\u00ed\u00f3\u00fa\u00fc\u00c1\u00c9\u00cd\u00d3\u00da\u00dc\u00e7\u00c7 "
+)
 
 
 # --- Core Functions ---
@@ -105,19 +118,7 @@ def normalize_symbols(text: str) -> str:
     """
     if not text:
         return ""
-    
-    replace_map = {
-        "´": "'", "`": "'", "’": "'", "‘": "'",
-        "‡": "'", "†": "'", "Ž": "'",
-        "«": '"', "»": '"', "“": '"', "”": '"',
-        "—": "-", "–": "-",
-        "§": "º", "¥": "Ñ"
-    }
-    
-    result = text
-    for old, new in replace_map.items():
-        result = result.replace(old, new)
-    return result
+    return text.translate(_SYMBOLS_TABLE)
 
 
 def erase_specialchar(text: str, allowed_chars: str = "") -> str:
@@ -133,11 +134,8 @@ def erase_specialchar(text: str, allowed_chars: str = "") -> str:
     """
     if not text:
         return ""
-        
-    # Standard allowed: Alpha, Numeric, Space, and Spanish chars
-    base_allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789ñÑáéíóúüÁÉÍÓÚÜçÇ "
-    allowed_set = set(base_allowed + allowed_chars)
-    
+
+    allowed_set = _BASE_ALLOWED_CHARS | set(allowed_chars) if allowed_chars else _BASE_ALLOWED_CHARS
     return "".join(char for char in text if char in allowed_set)
 
 
@@ -154,13 +152,7 @@ def fix_spanish(text: str, additional_allowed: str = "") -> str:
     """
     if not text:
         return ""
-    
-    # 1. Normalize symbols first
-    result = normalize_symbols(text)
-    
-    # 2. Filter characters
-    # Note: fix_spanish in original often includes basic punctuation logic
-    return erase_specialchar(result, additional_allowed)
+    return erase_specialchar(normalize_symbols(text), additional_allowed)
 
 
 # --- Filtering Functions ---
@@ -179,19 +171,9 @@ def string_filter(text: str, pattern: str, keep_spaces: bool = True) -> str:
     """
     if not text:
         return ""
-    
-    if keep_spaces:
-        # Pre-process spaces to ensure they are normalized but not stripped if they are internal
-        # Actually, let the regex handle it if requested
-        pass
-        
-    # We want to KEEP what matches the pattern
-    # So we remove what DOES NOT match the pattern
+
     if "^" not in pattern:
-        # If pattern doesn't start with ^, it's a "chars to allow" list
-        full_pattern = f"[^{pattern}]"
-        if keep_spaces:
-            full_pattern = f"[^{pattern}\\s]"
+        full_pattern = f"[^{pattern}\\s]" if keep_spaces else f"[^{pattern}]"
     else:
         full_pattern = pattern
 
@@ -207,16 +189,6 @@ def string_aZ(text: str, allowed: str = "", keep_spaces: bool = True) -> str:
 def string_aZ09(text: str, allowed: str = "", keep_spaces: bool = True) -> str:
     """Keep only letters, numbers, and specific allowed characters."""
     return string_filter(text, f"a-zA-Z0-9ñÑáéíóúüÁÉÍÓÚÜçÇ{re.escape(allowed)}", keep_spaces)
-
-
-def string_aZ_plus(text: str, allowed: str = "", keep_spaces: bool = True) -> str:
-    """Extended letter filter (includes symbols like @, #)."""
-    return string_filter(text, f"a-zA-ZñÑáéíóúüÁÉÍÓÚÜçÇ@#\\-_{re.escape(allowed)}", keep_spaces)
-
-
-def string_aZ09_plus(text: str, allowed: str = "", keep_spaces: bool = True) -> str:
-    """Extended alphanumeric filter (includes symbols)."""
-    return string_filter(text, f"a-zA-Z0-9ñÑáéíóúüÁÉÍÓÚÜçÇ@#\\-_{re.escape(allowed)}", keep_spaces)
 
 
 # --- Identity & Entity Parsing Functions ---
@@ -240,89 +212,7 @@ def reorder_comma_fullname(name: str) -> Optional[str]:
     return name.strip()
 
 
-def parse_company(text: str, legal_forms: Set[str]) -> Tuple[str, Optional[str]]:
-    """
-    Logic for separating company name from legal form.
-    
-    Args:
-        text: Raw company name.
-        legal_forms: Set of uppercase legal forms (SL, SA, etc.) to detect.
-        
-    Returns:
-        Tuple of (clean_name, legal_form).
-    """
-    if not text:
-        return "", None
-        
-    # 1. Clean and normalize
-    # (Implementation detail: usually we clean before looking at end of string)
-    oparse = normalize_spaces(text.upper())
-    
-    # Remove markers
-    oparse = oparse.replace("(EXTINGUIDA)", "").replace("- EXTINGUIDA", "").replace("-EXTINGUIDA", "")
-    oparse = oparse.replace("(EN LIQUIDACION)", "").replace(" EN LIQUIDACION", "")
-    
-    # Simple check from end
-    # We look for legal forms at the end of the string
-    # (Optimized: check against pre-calculated set)
-    words = oparse.split()
-    if not words:
-        return "", None
-        
-    last_word = words[-1].strip(".")
-    if last_word in legal_forms:
-        comtype = last_word
-        comname = " ".join(words[:-1])
-        return comname, comtype
-        
-    # Check for cases like "EMPRESA SLU." where "." is at the end
-    # Or "EMPRESA (SL)"
-    
-    return oparse, None
-
-
-def format_company_name(name: str, com_type: Optional[str], fmt: str = "dots") -> str:
-    """
-    Apply formatting style to company name and type.
-    """
-    if not name:
-        return ""
-    if not com_type:
-        return name
-        
-    if fmt == "brackets":
-        return f"{name} ({com_type})"
-    elif fmt == "dots":
-        # S.L. instead of SL
-        dotted = ".".join(com_type) + "." if len(com_type) <= 3 else com_type + "."
-        return f"{name} {dotted}"
-    elif fmt == "comma&dots":
-        dotted = ".".join(com_type) + "." if len(com_type) <= 3 else com_type + "."
-        return f"{name}, {dotted}"
-    
-    return f"{name} {com_type}"
-
-
 # --- Utility Functions ---
-
-def get_string_between(text: str, marker: str) -> Optional[str]:
-    """
-    Extract text found between two occurrences of a marker.
-    
-    Args:
-        text: Input string.
-        marker: Character or substring used as delimiter.
-        
-    Returns:
-        Extracted content or None.
-    """
-    if not text or not marker:
-        return None
-        
-    pattern = f"{re.escape(marker)}(.*?){re.escape(marker)}"
-    match = re.search(pattern, text, re.DOTALL)
-    return match.group(1).strip() if match else None
-
 
 def split_all(text: str, dividers: str = " \t\n\r\f\v-()./,;:!?@#$%^&*+=") -> List[str]:
     """
@@ -350,75 +240,3 @@ def get_in_text_by_pattern(text: str, pattern_name: str) -> List[str]:
         return []
     
     return re.findall(pat, text)
-
-
-def is_internet_domain_format(domain_string: str) -> bool:
-    """Checks if a given string has the format of an internet domain."""
-    if not isinstance(domain_string, str):
-        return False
-    # Simplified regex for domain format
-    domain_pattern = re.compile(
-        r"^(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+"
-        r"[a-zA-Z]{2,})$"
-    )
-    return bool(domain_pattern.match(domain_string))
-
-
-def is_url_format(url_string: str) -> bool:
-    """Checks if a given string has the format of a URL."""
-    if not isinstance(url_string, str):
-        return False
-    # Regex for URL format (simplified)
-    url_pattern = re.compile(
-        r"^(?:http|ftp)s?://"  # scheme
-        r"(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|"  # domain...
-        r"localhost|"  # localhost...
-        r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"  # ...or ip
-        r"(?::\d+)?"  # optional port
-        r"(?:/?|[/?]\S+)$", re.IGNORECASE)
-    return bool(url_pattern.match(url_string))
-
-
-def erase_lrspaces(text: str) -> str:
-    """Strip leading and trailing spaces."""
-    return text.strip() if text else ""
-
-
-def erase_digits(text: str) -> str:
-    """Remove all digits from a string."""
-    return re.sub(r'\d', '', text) if text else ""
-
-
-def username_from_email(email: str) -> Optional[str]:
-    """Extract username part from an email address."""
-    if not email or '@' not in email:
-        return None
-    return email.split('@')[0]
-
-
-def list_intersection(list1: list, list2: list) -> list:
-    """Return intersection of two lists preserving order if possible (set used here)."""
-    return list(set(list1) & set(list2))
-
-
-def list_to_string(lst: list, separator: str = ',') -> str:
-    """Convert a list to a string joined by separator."""
-    if not lst:
-        return ""
-    return separator.join(map(str, lst))
-
-
-def extract_and_decode_json(text: str) -> Optional[Dict]:
-    """Extracts and decodes the first JSON object found in a string."""
-    if not text:
-        return None
-    try:
-        start = text.find('{')
-        end = text.rfind('}')
-        if start != -1 and end != -1:
-            json_str = text[start:end+1]
-            import json
-            return json.loads(json_str)
-    except Exception:
-        pass
-    return None

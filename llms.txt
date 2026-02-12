@@ -16,7 +16,7 @@ ShadeTripTxt targets enterprise data-quality pipelines — identity resolution, 
 
 - **Language**: Python ≥ 3.10
 - **Build system**: Hatchling (`hatchling.build`)
-- **Core dependencies**: `email-validator` ≥ 2.0.0, `flashtext` ≥ 2.7, `faker` ≥ 20.0.0
+- **Core dependencies**: `flashtext` ≥ 2.7, `faker` ≥ 20.0.0
 - **Optional**: `formulite` (similarity algorithms), `spacy` ≥ 3.5.0, `nltk` ≥ 3.8.0, `python-anonymity`, `pycanon`, `pandas` ≥ 1.5.0
 - **Testing**: Custom assert-based scripts (pytest-compatible)
 
@@ -50,9 +50,8 @@ ShadeTripTxt/
 │   ├── text_anonymizer/          # PII detection & anonymization
 │   │   └── text_anonymizer.py    # TextAnonymizer, PiiType, Strategy enums
 │   └── utils/                    # Shared utilities
-│       ├── similarity_engines.py # Similarity algorithm implementations
 │       ├── string_ops.py         # Low-level text utilities
-│       └── string_similarity.py  # WordSimilarity, are_words_equivalent
+│       └── string_similarity.py  # Similarity algorithms + WordSimilarity class
 ├── pyproject.toml                # Build config & dependencies
 ├── README.md                     # Documentation
 └── LICENSE                       # MIT
@@ -250,6 +249,5 @@ python -m build
 | `shadetriptxt/text_dummy/text_dummy.py` | `TextDummy` — fake data generator with Pydantic model filling |
 | `shadetriptxt/text_anonymizer/text_anonymizer.py` | `TextAnonymizer` — PII detection (regex/spaCy/NLTK) + 7 anonymization strategies |
 | `shadetriptxt/text_matcher/algorithm_selector.py` | `AlgorithmSelector` — automatic algorithm selection by use case |
-| `shadetriptxt/utils/string_similarity.py` | `WordSimilarity` class and `are_words_equivalent` function |
-| `shadetriptxt/utils/similarity_engines.py` | Similarity algorithm implementations (Levenshtein, Jaro-Winkler, etc.) |
+| `shadetriptxt/utils/string_similarity.py` | Similarity algorithms (Levenshtein, Jaro-Winkler, etc.) + `WordSimilarity` class |
 | `pyproject.toml` | Build system, dependencies, optional extras |

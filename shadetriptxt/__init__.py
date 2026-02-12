@@ -3,7 +3,7 @@ shadetriptxt - A Python library for text validation and data cleaning.
 
 Version: 0.0.1
 Author: DatamanEdge
-License: Proprietary
+License: MIT
 """
 
 __version__ = "0.0.1"

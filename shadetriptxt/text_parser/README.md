@@ -199,7 +199,7 @@ The library's performance is driven by its internal utility layer, which provide
 | Module                 | Purpose                                                                                                   |
 | ---------------------- | --------------------------------------------------------------------------------------------------------- |
 | `string_ops`         | Centralized string operations — accent removal, whitespace normalization, character-level cleaning       |
-| `similarity_engines` | Core similarity algorithms — Levenshtein, Jaro-Winkler, Sørensen-Dice, Ratcliff-Obershelp               |
+| `string_similarity`  | Core similarity algorithms — Levenshtein, Jaro-Winkler, Sørensen-Dice, Ratcliff-Obershelp               |
 | `string_similarity`  | High-level OOP wrapper —`WordSimilarity` class, `are_words_equivalent()`, `calculate_similarity()` |
 
 ## Module Structure
@@ -1166,7 +1166,7 @@ Runnable scripts in `examples/`:
 - Python standard library (`re`, `unicodedata`, `typing`)
 - Internal utilities:
   - `shadetriptxt.utils.string_ops` — accent removal, character cleaning (used by `names_parser`, `text_extract`)
-  - `shadetriptxt.utils.similarity_engines` — core similarity algorithms (used indirectly via `string_similarity`)
+  - `shadetriptxt.utils.string_similarity` — core similarity algorithms and `WordSimilarity` class
   - `shadetriptxt.utils.string_similarity` — high-level similarity API (`WordSimilarity`, `are_words_equivalent`)
 
 ## License

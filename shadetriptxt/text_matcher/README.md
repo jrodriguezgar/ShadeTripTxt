@@ -1089,7 +1089,7 @@ Runnable scripts in `examples/`:
 ### Internal
 
 - `shadetriptxt.utils.string_similarity`: `WordSimilarity` class and `are_words_equivalent` function
-- `shadetriptxt.utils.similarity_engines`: Similarity algorithm implementations (Levenshtein, Jaro-Winkler, Metaphone, etc.)
+- `shadetriptxt.utils.string_similarity`: Similarity algorithm implementations (Levenshtein, Jaro-Winkler, MRA, etc.)
 - `shadetriptxt.utils.string_ops`: Low-level text utilities (`flat_vowels`, `normalize_spaces`)
 - `shadetriptxt.text_parser.text_normalizer`: Text preprocessing pipeline (used internally for automatic normalization)
 
