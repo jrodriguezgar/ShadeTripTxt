@@ -1,0 +1,255 @@
+# ShadeTripTxt
+
+> A Python library for enterprise data quality: text validation, data cleaning, fuzzy matching, fake data generation, PII detection & anonymization, and locale-aware text parsing across 12 locales and 6 languages.
+
+## Context
+
+ShadeTripTxt targets enterprise data-quality pipelines — identity resolution, deduplication, normalization, and privacy compliance. It is a pure Python library (no web framework) designed to be imported into ETL processes, data platforms, and backend services. Key goals:
+
+- **Multi-algorithm fuzzy matching** for name and text comparison (Levenshtein, Jaro-Winkler, Metaphone, MRA, LCS, Sørensen-Dice).
+- **Locale-aware processing** across 12 locales (es_ES, es_MX, es_AR, es_CO, es_CL, en_US, en_GB, pt_BR, pt_PT, fr_FR, de_DE, it_IT).
+- **PII detection and anonymization** with 7 strategies (redact, mask, replace, hash, generalize, pseudonymize, suppress).
+- **Fake data generation** for 60+ data types with Pydantic model auto-filling.
+- **Text normalization** including phonetic reduction, encoding repair (mojibake), and language-specific abbreviation expansion.
+
+## Tech Stack
+
+- **Language**: Python ≥ 3.10
+- **Build system**: Hatchling (`hatchling.build`)
+- **Core dependencies**: `email-validator` ≥ 2.0.0, `flashtext` ≥ 2.7, `faker` ≥ 20.0.0
+- **Optional**: `formulite` (similarity algorithms), `spacy` ≥ 3.5.0, `nltk` ≥ 3.8.0, `python-anonymity`, `pycanon`, `pandas` ≥ 1.5.0
+- **Testing**: Custom assert-based scripts (pytest-compatible)
+
+## Project Structure
+
+```
+ShadeTripTxt/
+├── shadetriptxt/                     # Main package
+│   ├── __init__.py               # Version 0.0.1
+│   ├── text_matcher/             # Fuzzy matching & deduplication
+│   │   ├── text_matcher.py       # TextMatcher, MatcherConfig classes
+│   │   ├── algorithm_selector.py # AlgorithmSelector, UseCase enum
+│   │   ├── match_result.py       # MatchResult dataclass
+│   │   └── ml_similarity_adapter.py
+│   ├── text_parser/              # Text extraction, normalization, parsing
+│   │   ├── text_parser.py        # TextParser — unified locale-aware API
+│   │   ├── text_extract.py       # TextExtractor — 25+ regex extractors
+│   │   ├── text_normalizer.py    # normalize_text(), prepare_for_comparison()
+│   │   ├── names_parser.py       # Person & company name parsing
+│   │   ├── idcard_parser.py       # Spanish/European NIF validation (28 countries)
+│   │   ├── language_normalizer.py # LanguageNormalizer — abbreviation expansion
+│   │   ├── encoding_fixer.py     # EncodingFixer — universal mojibake repair
+│   │   ├── spanish_parser.py     # Spanish phonetic reduction
+│   │   ├── english_parser.py     # English phonetic reduction
+│   │   ├── portuguese_parser.py  # Portuguese phonetic reduction
+│   │   ├── french_parser.py      # French phonetic reduction
+│   │   ├── german_parser.py      # German phonetic reduction
+│   │   └── italian_parser.py     # Italian phonetic reduction
+│   ├── text_dummy/               # Fake data generation
+│   │   └── text_dummy.py         # TextDummy, DummyField, LocaleProfile
+│   ├── text_anonymizer/          # PII detection & anonymization
+│   │   └── text_anonymizer.py    # TextAnonymizer, PiiType, Strategy enums
+│   └── utils/                    # Shared utilities
+│       ├── similarity_engines.py # Similarity algorithm implementations
+│       ├── string_ops.py         # Low-level text utilities
+│       └── string_similarity.py  # WordSimilarity, are_words_equivalent
+├── pyproject.toml                # Build config & dependencies
+├── README.md                     # Documentation
+└── LICENSE                       # MIT
+```
+
+## Configuration
+
+No environment variables required. All behaviour is configured through constructor parameters:
+
+| Parameter | Class | Description | Default |
+|-----------|-------|-------------|---------|
+| `locale` | TextParser, TextDummy, TextAnonymizer | ISO locale code (e.g. `es_ES`, `en_US`) | `es_ES` |
+| `config` | TextMatcher | MatcherConfig with preset profiles | `MatcherConfig.default()` |
+| `strategy` | TextAnonymizer | Anonymization strategy enum | `Strategy.REDACT` |
+| `seed` | TextAnonymizer | Reproducible pseudonymization seed | `None` |
+| `language` | EncodingFixer, LanguageNormalizer | ISO 639-1 language code | `None` / `es` |
+
+Dependencies and optional extras are declared in `pyproject.toml`:
+- `pip install shadetriptxt` — core
+- `pip install "shadetriptxt[full]"` — adds `formulite` (similarity algorithms)
+- `pip install "shadetriptxt[anonymizer]"` — adds spaCy, NLTK, python-anonymity, pycanon, pandas
+
+## CLI Interface
+
+ShadeTripTxt is a pure library — no CLI entry points. All functionality is accessed through Python imports.
+
+## Functions & Public API
+
+### text_matcher — Fuzzy Matching
+
+```python
+from shadetriptxt.text_matcher.text_matcher import TextMatcher, MatcherConfig
+
+matcher = TextMatcher(config=MatcherConfig.lenient())
+
+# Single word/name comparison
+is_match, metrics = matcher.compare_names("José", "Jose")
+
+# Multi-word full name comparison with alignment
+is_match, metrics = matcher.compare_name_bytokens("Juan García López", "Garcia Lopez Juan", keep_order=False)
+
+# Find best match from candidates
+best, score, metrics = matcher.find_best_match("Smithe", ["Smith", "Jones", "Smyth"])
+
+# Duplicate detection with blocking
+duplicates = matcher.detect_duplicates(["apple", "aple", "banana", "bananna"], threshold=0.8)
+
+# Batch comparison
+results = matcher.batch_compare([("hello", "helo"), ("world", "word")])
+
+# Phrase comparison (Sørensen-Dice)
+is_match, metrics = matcher.compare_phrases("premium leather wallet", "leather wallet premium")
+
+# Phonetic duplicate grouping (MRA)
+groups = matcher.find_phonetic_duplicates(["Smith", "Smyth", "Schmidt"])
+
+# Code/text diff
+diff = matcher.compare_text_detailed(code_v1, code_v2, show_diff=True)
+```
+
+### text_parser — Text Processing
+
+```python
+from shadetriptxt.text_parser.text_parser import TextParser
+
+parser = TextParser("es_ES")
+
+parser.normalize("Ma. P. García-López")          # Language-aware normalization
+parser.extract_phones("+34 91 303 20 60")         # Phone extraction
+parser.extract_emails("info@example.com")         # Email extraction
+parser.extract_ids("NIF 12345678A")               # ID document extraction
+parser.validate_id("12345678Z")                   # ID validation
+parser.remove_articles("Pedro de la Fuente")      # Article removal
+parser.reduce_phonetic("García", 1)               # Phonetic reduction
+parser.parse_name("García López, José")           # Name rearrangement
+parser.parse_company("EMPRESA ABC, S.L.")         # Company name parsing
+parser.fix_mojibake("Ã¡rbol")                     # Encoding repair
+parser.detect_encoding("espaÃ±ol")                # Encoding diagnostics
+
+# Direct module access
+from shadetriptxt.text_parser.text_extract import TextExtractor
+from shadetriptxt.text_parser.text_normalizer import normalize_text
+from shadetriptxt.text_parser.idcard_parser import nif_parse, european_nif
+from shadetriptxt.text_parser.encoding_fixer import EncodingFixer
+from shadetriptxt.text_parser.language_normalizer import LanguageNormalizer
+```
+
+### text_dummy — Fake Data Generation
+
+```python
+from shadetriptxt.text_dummy.text_dummy import TextDummy, DummyField
+
+gen = TextDummy("es_ES")
+
+# 60+ data types
+gen.name()                    # Full name
+gen.id_document()             # Locale-specific ID (DNI, SSN, CPF...)
+gen.iban()                    # IBAN
+gen.email()                   # Email
+gen.random_number("float", currency=True)  # Locale-formatted currency
+gen.random_date("2020-01-01", "2025-12-31")  # Random date
+gen.unique_key(prefix="USR-", length=6)    # Guaranteed-unique key
+gen.autoincrement(prefix="EMP-", zfill=5)  # Sequential counter
+
+# Custom types
+gen.register_custom_type("priority", ["Low", "Medium", "High", "Critical"])
+gen.generate_batch("priority", count=10)
+
+# Pydantic model auto-filling
+from pydantic import BaseModel
+from typing import Annotated
+
+class Employee(BaseModel):
+    codigo: Annotated[str, DummyField("uuid4")]
+    nombre: str
+    email: str
+
+employee = gen.fill_model(Employee)
+batch = gen.fill_model_batch(Employee, count=100)
+records = gen.to_records(Employee, count=1000)    # List[Dict]
+columns = gen.to_columns(Employee, count=1000)    # Dict[str, List] (DataFrame-ready)
+```
+
+### text_anonymizer — PII Detection & Anonymization
+
+```python
+from shadetriptxt.text_anonymizer import TextAnonymizer, Strategy, PiiType
+from shadetriptxt.text_anonymizer import anonymize_text, detect_pii, anonymize_dict
+
+# Text anonymization
+anon = TextAnonymizer(locale="es_ES", strategy="pseudonymize", seed=42)
+result = anon.anonymize_text("DNI: 12345678Z, email: juan@test.com")
+# result.anonymized, result.entities, result.replacements
+
+# Per-type strategy
+anon.set_strategy("mask", pii_type="EMAIL")
+anon.set_strategy("hash", pii_type="ID_DOCUMENT")
+
+# Detection engines (combinable)
+entities = anon.detect_pii(text, use_regex=True, use_spacy=True, use_nltk=True)
+
+# Dictionary/record anonymization (auto-detects field names)
+anon_record = anonymize_dict({"name": "Juan", "email": "j@t.com"}, strategy="redact")
+
+# DataFrame anonymization (k-anonymity, l-diversity, t-closeness)
+df_anon = anon.anonymize_dataframe(df, identifiers=["name"], quasi_identifiers=["age", "city"], k=2)
+
+# Privacy metrics
+report = anon.measure_privacy(df, quasi_identifiers=["age"], sensitive_attrs=["salary"])
+```
+
+## Development Workflow
+
+```bash
+# Install (editable mode)
+pip install -e .
+
+# Install with all optional dependencies
+pip install -e ".[full,anonymizer]"
+
+# Run tests
+python test_anonymizer.py
+# or
+pytest
+
+# Build package
+pip install hatchling
+python -m build
+```
+
+## Technical Rules & Conventions
+
+- **PEP 8** style throughout; `snake_case` for functions/variables, `PascalCase` for classes, `SCREAMING_SNAKE_CASE` for constants and enum members.
+- **Type annotations** on all public functions (parameters and return types).
+- **Docstrings** follow a structured format: `Description`, `Args`, `Returns`, `Raises`, `Example Usage`, `Cost`.
+- **Lazy loading** for heavy optional dependencies — import inside the method that needs them, raise `ImportError` with install instructions if missing.
+- **Locale-profile pattern** — each locale-aware module defines a frozen `@dataclass` profile and a `Dict[str, Profile]` registry keyed by locale code.
+- **Dataclass configuration** with preset factory class methods (`.strict()`, `.default()`, `.lenient()`, `.fuzzy()`).
+- **Strategy pattern** for anonymization dispatch.
+- **No secrets or real PII** in code, tests, or examples — use `TextDummy` for all synthetic data.
+- **Input validation** at public API boundaries: `TypeError` for wrong types, `ValueError` for invalid values.
+- **Testing** uses `check(name, condition, detail)` pattern with numbered, labeled sections.
+
+## Key Endpoints / Files
+
+| File | Description |
+|------|-------------|
+| `shadetriptxt/text_matcher/text_matcher.py` | Core matching engine — `TextMatcher`, `MatcherConfig`, name/text comparison, deduplication |
+| `shadetriptxt/text_parser/text_parser.py` | Unified locale-aware API — wraps all parser submodules |
+| `shadetriptxt/text_parser/text_extract.py` | 25+ regex-based content extractors (phones, emails, IBANs, dates, IPs...) |
+| `shadetriptxt/text_parser/text_normalizer.py` | `normalize_text()` — configurable text preprocessing pipeline |
+| `shadetriptxt/text_parser/idcard_parser.py` | Spanish NIF (DNI/NIE/CIF) + European NIF validation (28 countries) |
+| `shadetriptxt/text_parser/encoding_fixer.py` | `EncodingFixer` — universal mojibake detection & repair |
+| `shadetriptxt/text_parser/language_normalizer.py` | `LanguageNormalizer` — abbreviation expansion for 6 languages |
+| `shadetriptxt/text_dummy/text_dummy.py` | `TextDummy` — fake data generator with Pydantic model filling |
+| `shadetriptxt/text_anonymizer/text_anonymizer.py` | `TextAnonymizer` — PII detection (regex/spaCy/NLTK) + 7 anonymization strategies |
+| `shadetriptxt/text_matcher/algorithm_selector.py` | `AlgorithmSelector` — automatic algorithm selection by use case |
+| `shadetriptxt/utils/string_similarity.py` | `WordSimilarity` class and `are_words_equivalent` function |
+| `shadetriptxt/utils/similarity_engines.py` | Similarity algorithm implementations (Levenshtein, Jaro-Winkler, etc.) |
+| `pyproject.toml` | Build system, dependencies, optional extras |
