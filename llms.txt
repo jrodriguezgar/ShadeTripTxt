@@ -121,8 +121,13 @@ parser = TextParser("es_ES")
 
 parser.normalize("Ma. P. García-López")          # Language-aware normalization
 parser.extract_phones("+34 91 303 20 60")         # Phone extraction
+parser.extract_phones("612345678", pattern=r'\b6\d{8}\b')  # Custom pattern filter
 parser.extract_emails("info@example.com")         # Email extraction
 parser.extract_ids("NIF 12345678A")               # ID document extraction
+parser.extract_numeric("Code 1234 total 56789")   # All numbers
+parser.extract_numeric("Code 1234 total 56789", pattern=r'\b\d{4}\b')  # Only 4-digit
+parser.extract_dates("01/10/2023 y 2023-10-01")   # All dates
+parser.extract_dates("01/10/2023 y 2023-10-01", pattern=r'\b\d{4}-\d{2}-\d{2}\b')  # ISO only
 parser.validate_id("12345678Z")                   # ID validation
 parser.remove_articles("Pedro de la Fuente")      # Article removal
 parser.reduce_phonetic("García", 1)               # Phonetic reduction

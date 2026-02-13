@@ -257,9 +257,17 @@ Extract phone numbers. Uses locale's `phone_min_digits` to filter.
 
 **Parameters:**
 - `text` (str): Input text.
+- `pattern` (str | None): Optional custom regex pattern. When provided, extracts only phone numbers matching this format and skips locale-based digit filtering. Default: `None`.
 
 **Returns:**
 - `list[str] | None`: Phone numbers (digits only).
+
+**Example:**
+```python
+parser = TextParser("es_ES")
+parser.extract_phones("Tel: 612345678 y 912345678")                      # ['612345678', '912345678']
+parser.extract_phones("Tel: 612345678 y 912345678", pattern=r'\b6\d{8}\b')  # ['612345678']
+```
 
 **Cost:** O(n)
 
@@ -271,9 +279,17 @@ Extract postal codes using locale-aware digit count.
 
 **Parameters:**
 - `text` (str): Input text.
+- `pattern` (str | None): Optional custom regex pattern. When provided, overrides locale-aware detection. Default: `None`.
 
 **Returns:**
 - `list[str] | None`: Postal code strings.
+
+**Example:**
+```python
+parser = TextParser("es_ES")
+parser.extract_postal_codes("CP 28001 Madrid")                                    # ['28001']
+parser.extract_postal_codes("London SW1A 1AA", pattern=r'\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b')  # ['SW1A 1AA']
+```
 
 **Cost:** O(n)
 
@@ -334,9 +350,17 @@ Extract date strings (DD/MM/YYYY, MM-DD-YY, etc.).
 
 **Parameters:**
 - `text` (str): Input text.
+- `pattern` (str | None): Optional custom regex for specific date formats. Default: `None`.
 
 **Returns:**
 - `list[str] | None`: Date strings.
+
+**Example:**
+```python
+parser = TextParser("es_ES")
+parser.extract_dates("01/10/2023 and 2023-10-01")                                 # ['01/10/2023']
+parser.extract_dates("01/10/2023 and 2023-10-01", pattern=r'\b\d{4}-\d{2}-\d{2}\b')  # ['2023-10-01']
+```
 
 **Cost:** O(n)
 
@@ -432,9 +456,17 @@ Extract numeric values.
 
 **Parameters:**
 - `text` (str): Input text.
+- `pattern` (str | None): Optional custom regex for specific numeric formats. Default: `None`.
 
 **Returns:**
 - `list[str] | None`: Numeric strings.
+
+**Example:**
+```python
+parser = TextParser("es_ES")
+parser.extract_numeric("Ref 1234 total 56789.50")                          # ['1234', '56789.50']
+parser.extract_numeric("Ref 1234 total 56789.50", pattern=r'\b\d{4}\b')    # ['1234']
+```
 
 **Cost:** O(n)
 
@@ -446,9 +478,17 @@ Extract percentage values.
 
 **Parameters:**
 - `text` (str): Input text.
+- `pattern` (str | None): Optional custom regex for specific percentage formats. Default: `None`.
 
 **Returns:**
 - `list[str] | None`: Percentage strings.
+
+**Example:**
+```python
+parser = TextParser("es_ES")
+parser.extract_percentages("Descuento 20% e IVA 21.5%")                          # ['20%', '21.5%']
+parser.extract_percentages("Descuento 20% e IVA 21.5%", pattern=r'\b\d+\.\d+%')  # ['21.5%']
+```
 
 **Cost:** O(n)
 
@@ -678,14 +718,14 @@ All methods take `text (str)` and return `list[str] | None`.
 |--------|----------|-------------|------|
 | `extract_from_parentheses(text)` | Generic | Text enclosed in parentheses | O(n) |
 | `tokenize(text)` | Generic | Split text into tokens | O(n) |
-| `extract_phones(text)` | Generic | Phone numbers (≥ 5 digits) | O(n) |
+| `extract_phones(text, pattern=None)` | Generic | Phone numbers (≥ 5 digits); custom regex | O(n) |
 | `extract_emails(text)` | Generic | Email addresses | O(n) |
 | `extract_mentions(text)` | Generic | @mentions | O(n) |
 | `extract_currency(text)` | Financial | Currency amounts ($, €, £, ¥) | O(n) |
 | `extract_credit_cards(text)` | Financial | 16-digit credit card numbers | O(n) |
 | `extract_ibans(text)` | Financial | IBAN codes | O(n) |
 | `extract_swift_bic(text)` | Financial | SWIFT/BIC codes (8 or 11 chars) | O(n) |
-| `extract_postal_codes(text)` | Identifiers | 4-5 digit postal codes | O(n) |
+| `extract_postal_codes(text, pattern=None)` | Identifiers | 4-5 digit postal codes; custom regex | O(n) |
 | `extract_custom_ids(text)` | Identifiers | Uppercase letters + digits (e.g. REF456) | O(n) |
 | `extract_patient_ids(text)` | Identifiers | Patient IDs (PAT-XXXXX) | O(n) |
 | `extract_nif(text)` | Identifiers | Spanish NIF (8 digits + letter) | O(n) |
@@ -701,12 +741,16 @@ All methods take `text (str)` and return `list[str] | None`.
 | `extract_quotations(text)` | Text Structure | Quoted strings | O(n) |
 | `extract_paragraphs(text)` | Text Structure | Paragraphs (double newline) | O(n) |
 | `extract_classification_tags(text)` | Text Structure | Tags in [brackets] | O(n) |
-| `extract_numeric(text)` | Numeric | Numeric values | O(n) |
-| `extract_numeric_units(text)` | Numeric | Numbers with units (10kg, 5m) | O(n) |
-| `extract_percentages(text)` | Numeric | Percentage values | O(n) |
-| `extract_dates(text)` | Numeric | Dates (DD/MM/YYYY, etc.) | O(n) |
-| `extract_times(text)` | Numeric | Times (HH:MM, optional AM/PM) | O(n) |
+| `extract_numeric(text, pattern=None)` | Numeric | Numeric values; custom regex | O(n) |
+| `extract_numeric_units(text, pattern=None)` | Numeric | Numbers with units; custom regex | O(n) |
+| `extract_percentages(text, pattern=None)` | Numeric | Percentage values; custom regex | O(n) |
+| `extract_dates(text, pattern=None)` | Numeric | Dates; custom regex | O(n) |
+| `extract_times(text, pattern=None)` | Numeric | Times; custom regex | O(n) |
 | `extract_passwords(text)` | Security | Potential password strings | O(n) |
+
+> **Custom Pattern (`pattern`):** When `pattern` is `None` (default), the method uses its built-in
+> general regex. When a custom regex string is provided, only matches of that pattern are
+> returned, enabling precise format filtering (e.g., only ISO dates, only 4-digit codes, etc.).
 
 ---
 

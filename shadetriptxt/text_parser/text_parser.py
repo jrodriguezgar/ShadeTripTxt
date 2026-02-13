@@ -592,7 +592,7 @@ class TextParser:
     # Text extraction (locale-enhanced)
     # ------------------------------------------------------------------
 
-    def extract_phones(self, text: str) -> Optional[List[str]]:
+    def extract_phones(self, text: str, pattern: Optional[str] = None) -> Optional[List[str]]:
         """
         Extract phone numbers from text.
 
@@ -601,18 +601,23 @@ class TextParser:
 
         Args:
             text: Input text.
+            pattern: Optional custom regex pattern. When provided,
+                extracts only phone numbers matching this specific format.
 
         Returns:
             List of phone number strings (digits only), or None.
         """
-        phones = self._extractor.extract_phones(text)
+        phones = self._extractor.extract_phones(text, pattern=pattern)
         if not phones or not self.profile:
+            return phones
+        # When using a custom pattern, skip locale-based digit filtering
+        if pattern is not None:
             return phones
         min_digits = self.profile.phone_min_digits
         filtered = [p for p in phones if len(p) >= min_digits]
         return filtered if filtered else None
 
-    def extract_postal_codes(self, text: str) -> Optional[List[str]]:
+    def extract_postal_codes(self, text: str, pattern: Optional[str] = None) -> Optional[List[str]]:
         """
         Extract postal codes from text using locale-aware digit count.
 
@@ -622,18 +627,23 @@ class TextParser:
 
         Args:
             text: Input text.
+            pattern: Optional custom regex pattern. When provided,
+                extracts only postal codes matching this specific format.
 
         Returns:
             List of postal code strings, or None.
         """
         if text is None:
             return None
+        # When a custom pattern is provided, delegate directly
+        if pattern is not None:
+            return self._extractor.extract_postal_codes(text, pattern=pattern)
         if not self.profile or self.profile.postal_code_digits == 0:
             return self._extractor.extract_postal_codes(text)
 
         digits = self.profile.postal_code_digits
-        pattern = re.compile(r'\b\d{' + str(digits) + r'}\b')
-        codes = pattern.findall(str(text))
+        locale_pattern = re.compile(r'\b\d{' + str(digits) + r'}\b')
+        codes = locale_pattern.findall(str(text))
         return codes if codes else None
 
     def extract_ids(self, text: str, doc_type: Optional[str] = None) -> Optional[List[str]]:
@@ -677,9 +687,14 @@ class TextParser:
         """Extract URLs from text."""
         return self._extractor.extract_urls(text)
 
-    def extract_dates(self, text: str) -> Optional[List[str]]:
-        """Extract date strings from text."""
-        return self._extractor.extract_dates(text)
+    def extract_dates(self, text: str, pattern: Optional[str] = None) -> Optional[List[str]]:
+        """Extract date strings from text.
+
+        Args:
+            text: Input text.
+            pattern: Optional custom regex pattern for specific date formats.
+        """
+        return self._extractor.extract_dates(text, pattern=pattern)
 
     def extract_ibans(self, text: str) -> Optional[List[str]]:
         """Extract IBAN codes from text."""
@@ -705,13 +720,23 @@ class TextParser:
         """Extract IPv4 addresses from text."""
         return self._extractor.extract_ip_addresses(text)
 
-    def extract_numeric(self, text: str) -> Optional[List[str]]:
-        """Extract numeric values from text."""
-        return self._extractor.extract_numeric(text)
+    def extract_numeric(self, text: str, pattern: Optional[str] = None) -> Optional[List[str]]:
+        """Extract numeric values from text.
 
-    def extract_percentages(self, text: str) -> Optional[List[str]]:
-        """Extract percentage values from text."""
-        return self._extractor.extract_percentages(text)
+        Args:
+            text: Input text.
+            pattern: Optional custom regex pattern for specific numeric formats.
+        """
+        return self._extractor.extract_numeric(text, pattern=pattern)
+
+    def extract_percentages(self, text: str, pattern: Optional[str] = None) -> Optional[List[str]]:
+        """Extract percentage values from text.
+
+        Args:
+            text: Input text.
+            pattern: Optional custom regex pattern for specific percentage formats.
+        """
+        return self._extractor.extract_percentages(text, pattern=pattern)
 
     def tokenize(self, text: str) -> Optional[List[str]]:
         """Tokenize text into a list of words."""

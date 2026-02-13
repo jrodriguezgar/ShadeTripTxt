@@ -122,8 +122,8 @@ class TextExtractor:
         tokens = self._split_all(text)
         return tokens if tokens else None
 
-    def extract_phones(self, text):
-        """
+    def extract_phones(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts potential phone numbers from a string.
 
         A phone number is identified as a sequence of digits that:
@@ -132,8 +132,16 @@ class TextExtractor:
         2. May optionally start with a '+' sign.
         3. May contain common phone number delimiters internally.
 
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default phone detection logic, allowing extraction of phone numbers that
+        match a specific format.
+
         Args:
             text (str): The input string to parse for phone numbers.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default phone extraction logic. When provided, all matches
+                of this pattern are returned directly without digit-length
+                filtering. Defaults to None (use default behavior).
 
         Returns:
             list[str] or None: A list of cleaned phone numbers (digits only) if found,
@@ -147,11 +155,21 @@ class TextExtractor:
             phones = extractor.extract_phones("Call me at +1-234-567-8901 or 123 456 7890")
             # Returns: ['12345678901', '1234567890']
 
+            # With custom pattern (only Spanish mobile numbers starting with 6):
+            phones = extractor.extract_phones("Llama al 612345678 o al 912345678", pattern=r'\b6\d{8}\b')
+            # Returns: ['612345678']
+
         Cost:
             O(n), where n is the length of the input string.
         """
         if text is None:
             return text
+
+        # If a custom pattern is provided, use it directly
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            matches = custom_re.findall(text)
+            return matches if matches else None
 
         # Define characters that are allowed within a phone number string but should be stripped
         # for the final digit-only output. This includes common phone number separators
@@ -376,16 +394,21 @@ class TextExtractor:
 
     # ==================== Identifiers ====================
 
-    def extract_postal_codes(self, text: str) -> list[str] | None:
-        """
+    def extract_postal_codes(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts 5-digit or 4-digit postal codes from an address string.
 
         It first attempts to find all 5-digit number sequences that are whole "words".
         If no 5-digit codes are found, it then attempts to find all 4-digit number
         sequences that are whole "words".
 
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default postal code detection logic.
+
         Args:
             text (str): The input address string.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default postal code logic. Defaults to None.
 
         Returns:
             list[str] or None: A list of found postal codes (as strings).
@@ -400,6 +423,10 @@ class TextExtractor:
             codes = extractor.extract_postal_codes("123 Main St, Anytown, 12345 USA")
             # Returns: ['12345']
 
+            # With custom pattern (UK postcodes):
+            codes = extractor.extract_postal_codes("Address SW1A 1AA London", pattern=r'\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b')
+            # Returns: ['SW1A 1AA']
+
         Cost:
             O(n), where n is the length of the input string.
         """
@@ -408,6 +435,12 @@ class TextExtractor:
 
         # Ensure text is treated as a string, in case it's a number or other type.
         address_str = str(text)
+
+        # If a custom pattern is provided, use it directly
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            found_codes = custom_re.findall(address_str)
+            return found_codes if found_codes else None
 
         # First, try to find 5-digit postal codes
         found_codes = self._POSTAL_CODE_5_DIGIT_PATTERN.findall(address_str)
@@ -891,14 +924,20 @@ class TextExtractor:
 
     # ==================== Numeric and Units ====================
 
-    def extract_numeric(self, text: str) -> list[str] | None:
-        """
+    def extract_numeric(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts numeric values from the input text.
 
         Identifies sequences of digits, optionally with decimals.
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default numeric detection, allowing extraction of numbers matching a
+        specific format (e.g., only integers, only 4-digit numbers, etc.).
 
         Args:
             text (str): The input text to search for numeric values.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default numeric extraction. Defaults to None (extract all
+                numbers).
 
         Returns:
             list[str] or None: A list of found numeric strings if any are found,
@@ -912,24 +951,37 @@ class TextExtractor:
             numbers = extractor.extract_numeric("There are 123 apples and 45.67 oranges")
             # Returns: ['123', '45.67']
 
+            # With custom pattern (only 3-digit integers):
+            numbers = extractor.extract_numeric("Codes 123 and 4567 and 89", pattern=r'\b\d{3}\b')
+            # Returns: ['123']
+
         Cost:
             O(n), where n is the length of the input string.
         """
         if text is None:
             return None
 
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            numbers = custom_re.findall(text)
+            return numbers if numbers else None
+
         numeric_pattern = re.compile(r'\b\d+(?:\.\d+)?\b')
         numbers = numeric_pattern.findall(text)
         return numbers if numbers else None
 
-    def extract_numeric_units(self, text: str) -> list[str] | None:
-        """
+    def extract_numeric_units(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts numeric values with units from the input text.
 
         Identifies numbers followed by alphabetic units.
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default detection, allowing extraction of specific unit formats.
 
         Args:
             text (str): The input text to search for numeric units.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default numeric unit extraction. Defaults to None.
 
         Returns:
             list[str] or None: A list of found numeric unit strings if any are found,
@@ -943,24 +995,37 @@ class TextExtractor:
             units = extractor.extract_numeric_units("Weight 10kg and height 5m")
             # Returns: ['10kg', '5m']
 
+            # With custom pattern (only kg units):
+            units = extractor.extract_numeric_units("Weight 10kg and height 5m", pattern=r'\b\d+(?:\.\d+)?\s*kg\b')
+            # Returns: ['10kg']
+
         Cost:
             O(n), where n is the length of the input string.
         """
         if text is None:
             return None
 
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            units = custom_re.findall(text)
+            return units if units else None
+
         unit_pattern = re.compile(r'\b\d+(?:\.\d+)?\s*[a-zA-Z]+\b')
         units = unit_pattern.findall(text)
         return units if units else None
 
-    def extract_percentages(self, text: str) -> list[str] | None:
-        """
+    def extract_percentages(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts percentages from the input text.
 
         Identifies numbers followed by a percent sign.
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default detection.
 
         Args:
             text (str): The input text to search for percentages.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default percentage extraction. Defaults to None.
 
         Returns:
             list[str] or None: A list of found percentage strings if any are found,
@@ -974,24 +1039,39 @@ class TextExtractor:
             percentages = extractor.extract_percentages("Discount is 20% off and tax 8.5%")
             # Returns: ['20%', '8.5%']
 
+            # With custom pattern (only integer percentages):
+            percentages = extractor.extract_percentages("20% and 8.5%", pattern=r'\b\d+%')
+            # Returns: ['20%', '8%']  # note: depends on the pattern precision
+
         Cost:
             O(n), where n is the length of the input string.
         """
         if text is None:
             return None
 
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            percentages = custom_re.findall(text)
+            return percentages if percentages else None
+
         percentage_pattern = re.compile(r'\b\d+(?:\.\d+)?%\b')
         percentages = percentage_pattern.findall(text)
         return percentages if percentages else None
 
-    def extract_dates(self, text: str) -> list[str] | None:
-        """
+    def extract_dates(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts date strings from the input text.
 
         Identifies common date formats like DD/MM/YYYY or MM-DD-YY.
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default date detection, allowing extraction of dates in a specific format
+        (e.g., only ISO format YYYY-MM-DD, or only DD/MM/YYYY).
 
         Args:
             text (str): The input text to search for dates.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default date extraction. Defaults to None (extract all
+                common date formats).
 
         Returns:
             list[str] or None: A list of found date strings if any are found,
@@ -1005,24 +1085,37 @@ class TextExtractor:
             dates = extractor.extract_dates("Event on 01/10/2023 and 2023-10-01")
             # Returns: ['01/10/2023', '2023-10-01']
 
+            # With custom pattern (only ISO dates YYYY-MM-DD):
+            dates = extractor.extract_dates("01/10/2023 and 2023-10-01", pattern=r'\b\d{4}-\d{2}-\d{2}\b')
+            # Returns: ['2023-10-01']
+
         Cost:
             O(n), where n is the length of the input string.
         """
         if text is None:
             return None
 
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            dates = custom_re.findall(text)
+            return dates if dates else None
+
         date_pattern = re.compile(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b')
         dates = date_pattern.findall(text)
         return dates if dates else None
 
-    def extract_times(self, text: str) -> list[str] | None:
-        """
+    def extract_times(self, text: str, pattern: str | None = None) -> list[str] | None:
+        r"""
         Extracts time strings from the input text.
 
         Identifies times in HH:MM format, optionally with AM/PM.
+        If a custom `pattern` is provided, it is used as the regex instead of the
+        default time detection.
 
         Args:
             text (str): The input text to search for times.
+            pattern (str, optional): A custom regex pattern to use instead of
+                the default time extraction. Defaults to None.
 
         Returns:
             list[str] or None: A list of found time strings if any are found,
@@ -1036,11 +1129,20 @@ class TextExtractor:
             times = extractor.extract_times("Meeting at 14:30 and 2:30 PM")
             # Returns: ['14:30', '2:30']
 
+            # With custom pattern (only 24h format HH:MM:SS):
+            times = extractor.extract_times("At 14:30:00 and 2:30 PM", pattern=r'\b\d{2}:\d{2}:\d{2}\b')
+            # Returns: ['14:30:00']
+
         Cost:
             O(n), where n is the length of the input string.
         """
         if text is None:
             return None
+
+        if pattern is not None:
+            custom_re = re.compile(pattern)
+            times = custom_re.findall(text)
+            return times if times else None
 
         time_pattern = re.compile(r'\b\d{1,2}:\d{2}(?:\s?[AP]M)?\b')
         times = time_pattern.findall(text)

@@ -347,6 +347,10 @@ extractor = TextExtractor()
 phones = extractor.extract_phones("Call me at +34-91-303-20-60 or 600606060")
 # Returns: ['34913032060', '600606060']
 
+# Extract only mobile phones (starting with 6)
+mobiles = extractor.extract_phones("Tlf: 612345678 y fijo: 912345678", pattern=r'\b6\d{8}\b')
+# Returns: ['612345678']
+
 # Extract emails
 emails = extractor.extract_emails("Contact support@example.com or sales@company.org")
 # Returns: ['support@example.com', 'sales@company.org']
@@ -358,6 +362,18 @@ urls = extractor.extract_urls("Visit https://www.example.com for info")
 # Extract IBANs
 ibans = extractor.extract_ibans("Account IBAN ES9121000418450200051332")
 # Returns: ['ES9121000418450200051332']
+
+# Extract all numbers vs only 4-digit codes
+all_nums = extractor.extract_numeric("Ref 1234 and total 56789.50")
+# Returns: ['1234', '56789.50']
+codes = extractor.extract_numeric("Ref 1234 and total 56789.50", pattern=r'\b\d{4}\b')
+# Returns: ['1234']
+
+# Extract all dates vs only ISO format
+all_dates = extractor.extract_dates("Fechas: 01/10/2023 y 2023-10-01")
+# Returns: ['01/10/2023']
+iso_dates = extractor.extract_dates("Fechas: 01/10/2023 y 2023-10-01", pattern=r'\b\d{4}-\d{2}-\d{2}\b')
+# Returns: ['2023-10-01']
 ```
 
 #### Text Normalization
@@ -606,20 +622,20 @@ TextParser(locale="es_ES")
 
 | Method                         | Description                                         |
 | ------------------------------ | --------------------------------------------------- |
-| `extract_phones(text)`       | Extract phone numbers (locale-aware min digits)     |
-| `extract_postal_codes(text)` | Extract postal codes (locale-aware digit count)     |
+| `extract_phones(text, pattern=None)`       | Extract phone numbers (locale-aware min digits); custom pattern overrides |
+| `extract_postal_codes(text, pattern=None)` | Extract postal codes (locale-aware digit count); custom pattern overrides |
 | `extract_ids(text)`          | Extract ID documents matching the locale's patterns |
 | `extract_emails(text)`       | Extract email addresses                             |
 | `extract_urls(text)`         | Extract HTTP/HTTPS URLs                             |
 | `extract_ibans(text)`        | Extract IBAN codes                                  |
 | `extract_credit_cards(text)` | Extract credit card numbers                         |
-| `extract_dates(text)`        | Extract dates                                       |
+| `extract_dates(text, pattern=None)`        | Extract dates; custom pattern for specific formats  |
 | `extract_currency(text)`     | Extract currency amounts                            |
 | `extract_hashtags(text)`     | Extract hashtags                                    |
 | `extract_mentions(text)`     | Extract @mentions                                   |
 | `extract_ip_addresses(text)` | Extract IPv4 addresses                              |
-| `extract_numeric(text)`      | Extract numeric values                              |
-| `extract_percentages(text)`  | Extract percentage values                           |
+| `extract_numeric(text, pattern=None)`      | Extract numeric values; custom pattern for specific formats |
+| `extract_percentages(text, pattern=None)`  | Extract percentage values; custom pattern overrides |
 | `tokenize(text)`             | Tokenize text into words                            |
 
 #### Methods — ID Validation
@@ -705,14 +721,14 @@ TextExtractor(separators=None)
 | ------------------------ | ------------------------------------- | ----------------------------------------- |
 | **Generic**        | `extract_from_parentheses(text)`    | Text enclosed in parentheses              |
 |                          | `tokenize(text)`                    | Split text into tokens                    |
-|                          | `extract_phones(text)`              | Phone numbers (≥5 digits)                |
+|                          | `extract_phones(text, pattern=None)`| Phone numbers (≥5 digits); custom regex  |
 |                          | `extract_emails(text)`              | Email addresses                           |
 |                          | `extract_mentions(text)`            | @mentions                                 |
 | **Financial**      | `extract_currency(text)`            | Currency amounts ($, €, £, ¥)          |
 |                          | `extract_credit_cards(text)`        | 16-digit credit card numbers              |
 |                          | `extract_ibans(text)`               | IBAN codes                                |
 |                          | `extract_swift_bic(text)`           | SWIFT/BIC codes                           |
-| **Identifiers**    | `extract_postal_codes(text)`        | 4-5 digit postal codes                    |
+| **Identifiers**    | `extract_postal_codes(text, pattern=None)` | 4-5 digit postal codes; custom regex|
 |                          | `extract_custom_ids(text)`          | Uppercase letters + digits (e.g., REF456) |
 |                          | `extract_patient_ids(text)`         | Patient IDs (PAT-XXXXX)                   |
 |                          | `extract_nif(text)`                 | Spanish NIF numbers                       |
@@ -728,14 +744,38 @@ TextExtractor(separators=None)
 |                          | `extract_quotations(text)`          | Quoted strings                            |
 |                          | `extract_paragraphs(text)`          | Paragraphs (split by double newline)      |
 |                          | `extract_classification_tags(text)` | Tags in [brackets]                        |
-| **Numeric**        | `extract_numeric(text)`             | Numeric values                            |
-|                          | `extract_numeric_units(text)`       | Numbers with units (10kg, 5m)             |
-|                          | `extract_percentages(text)`         | Percentage values                         |
-|                          | `extract_dates(text)`               | Dates (DD/MM/YYYY, etc.)                  |
-|                          | `extract_times(text)`               | Times (HH:MM, with optional AM/PM)        |
+| **Numeric**        | `extract_numeric(text, pattern=None)` | Numeric values; custom regex            |
+|                          | `extract_numeric_units(text, pattern=None)` | Numbers with units; custom regex  |
+|                          | `extract_percentages(text, pattern=None)` | Percentage values; custom regex     |
+|                          | `extract_dates(text, pattern=None)` | Dates (DD/MM/YYYY, etc.); custom regex    |
+|                          | `extract_times(text, pattern=None)` | Times (HH:MM, AM/PM); custom regex        |
 | **Security**       | `extract_passwords(text)`           | Potential password strings                |
 
 All methods return `list[str]` if matches are found, or `None` if no matches / input is `None`.
+
+> **Custom Pattern Filtering:** Methods marked with `pattern=None` accept an optional regex string.
+> When omitted, the default (general) extraction is performed. When provided, only matches
+> of that specific pattern are returned, enabling precise filtering of formats.
+
+```python
+from shadetriptxt.text_parser.text_extract import TextExtractor
+
+extractor = TextExtractor()
+text = "Codes: 123, 4567, 89. Dates: 01/10/2023, 2023-10-01. Tel: 612345678, 912345678"
+
+# General extraction (default)
+extractor.extract_numeric(text)         # ['123', '4567', '89', '01', '10', '2023', ...]
+extractor.extract_dates(text)           # ['01/10/2023']
+
+# With custom pattern — only 3-digit numbers
+extractor.extract_numeric(text, pattern=r'\b\d{3}\b')        # ['123']
+
+# With custom pattern — only ISO dates (YYYY-MM-DD)
+extractor.extract_dates(text, pattern=r'\b\d{4}-\d{2}-\d{2}\b')  # ['2023-10-01']
+
+# With custom pattern — only Spanish mobile phones (starting with 6)
+extractor.extract_phones(text, pattern=r'\b6\d{8}\b')        # ['612345678']
+```
 
 ---
 
@@ -999,6 +1039,9 @@ raw = "Contact: Juan García (+34) 91-303-20-60, email: juan.garcia@empresa.com"
 phones = extractor.extract_phones(raw)       # ['34913032060']
 emails = extractor.extract_emails(raw)       # ['juan.garcia@empresa.com']
 clean  = normalize_text(raw, remove_accents=True)  # "contact juan garcia +34 91-303-20-60 email juan.garcia@empresa.com"
+
+# Extract only Madrid landlines (starting with 91)
+madrid_phones = extractor.extract_phones(raw, pattern=r'\b91[\d\s-]+\b')  # ['91-303-20-60']
 ```
 
 ### 2. Identity Resolution
