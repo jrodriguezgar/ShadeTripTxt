@@ -115,6 +115,32 @@ print(result.anonymized)
 # → "Email: j***.g*****@*******.***,  DNI: 1*******Z"
 ```
 
+**Custom mask character:** change `*` to any single character via `mask_char`:
+
+```python
+anon = TextAnonymizer(strategy="mask", mask_char="#")
+result = anon.anonymize_text("DNI: 12345678Z")
+print(result.anonymized)
+# → "DNI: 1#######Z"
+```
+
+**Custom mask function:** replace the built-in logic entirely with a callable `(text, pii_type) -> str`, either globally or per PII type:
+
+```python
+anon = TextAnonymizer(strategy="mask")
+
+# Global: all PII types use this function
+anon.set_mask_function(lambda text, pt: "█" * len(text))
+
+# Per-type: only emails use this function (overrides the global one for EMAIL)
+anon.set_mask_function(
+    lambda text, pt: text[0] + "···@···.···",
+    pii_type="EMAIL",
+)
+```
+
+Priority: per-type function → global function → built-in logic (with `mask_char`).
+
 **Also available at field level with TextParser:**
 
 ```python
@@ -1234,6 +1260,7 @@ All code examples referenced in this guide are available in `shadetriptxt/text_a
 | File                      | Theme                    | Guide sections covered                                                   |
 | ------------------------- | ------------------------ | ------------------------------------------------------------------------ |
 | `text_strategies.py`    | Text Anonymization       | 3.1–3.7 Techniques, 5.2 Mask sensitive data in free text                |
+| `custom_masking.py`     | Custom Masking           | 3.1 Custom mask char, per-type mask functions (IP, PCI-DSS, email, ID, phone), GDPR combined masks |
 | `dict_records.py`       | Records & Dictionaries   | 5.3 Anonymize records and dictionaries (incl. field whitelist)           |
 | `dataframe_privacy.py`  | DataFrame & Privacy      | 3.8 k-Anonymity/l-Diversity/t-Closeness, 5.4 DataFrame anonymization    |
 | `multi_locale.py`       | Multi-locale             | 5.9 Multi-language anonymization + fake data by country                  |

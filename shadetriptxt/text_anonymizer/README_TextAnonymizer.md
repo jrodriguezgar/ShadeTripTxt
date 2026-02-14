@@ -109,6 +109,7 @@ python -m spacy download it_core_news_sm   # Italian
 | **Privacy Metrics**    | k-anonymity, l-diversity, t-closeness (pycanon)                                    |
 | **Custom Patterns**    | Register your own regex patterns                                                   |
 | **Per-type Strategy**  | Different strategy per PII type                                                    |
+| **Custom Masking**     | Custom mask character, global or per-type mask functions                            |
 
 ## PII Types Detected
 
@@ -147,6 +148,36 @@ Partially hide characters while preserving structure.
 result = anonymize_text("Email: juan@test.com", strategy="mask")
 # → "Email: j***@****.***"
 ```
+
+**Custom mask character:**
+
+```python
+anon = TextAnonymizer(strategy="mask", mask_char="#")
+result = anon.anonymize_text("Email: juan@test.com")
+# → "Email: j###@####.###"
+```
+
+**Custom mask function (global):**
+
+```python
+anon = TextAnonymizer(strategy="mask")
+anon.set_mask_function(lambda text, pt: "X" * len(text))
+result = anon.anonymize_text("Email: juan@test.com")
+# → "Email: XXXXXXXXXXXXXX"
+```
+
+**Custom mask function (per PII type):**
+
+```python
+anon = TextAnonymizer(strategy="mask")
+anon.set_mask_function(
+    lambda text, pt: text[0] + "·" * (len(text) - 1),
+    pii_type="EMAIL",
+)
+# Only emails use the custom function; other types use the built-in logic
+```
+
+**Priority:** per-type function > global function > built-in logic (with `mask_char`).
 
 ### HASH
 
@@ -436,26 +467,35 @@ External libraries and internal modules are only loaded when their features are 
 ### TextAnonymizer class
 
 ```python
-anon = TextAnonymizer(locale="es_ES", strategy="redact", seed=None)
+anon = TextAnonymizer(locale="es_ES", strategy="redact", seed=None, mask_char="*", custom_mask_fn=None)
 ```
 
-| Method                               | Description                                  |
-| ------------------------------------ | -------------------------------------------- |
-| `detect_pii(text, ...)`            | Detect PII entities in text                  |
-| `anonymize_text(text, ...)`        | Detect and anonymize PII in text             |
-| `anonymize_dict(record, ...)`      | Anonymize dictionary values                  |
-| `anonymize_records(records, ...)`  | Anonymize list of dicts                      |
-| `anonymize_batch(texts, ...)`      | Anonymize list of strings                    |
-| `anonymize_columns(df, ...)`       | Anonymize DataFrame columns                  |
-| `anonymize_dataframe(df, ...)`     | Apply k-anonymity (python-anonymity)         |
-| `apply_l_diversity(df, ...)`       | Apply l-diversity                            |
-| `apply_t_closeness(df, ...)`       | Apply t-closeness                            |
-| `measure_privacy(df, ...)`         | Measure privacy metrics (pycanon)            |
-| `summary(result)`                  | Get anonymization statistics                 |
-| `set_strategy(strategy, pii_type)` | Set strategy (global or per-type)            |
-| `add_pattern(name, pattern)`       | Register custom regex                        |
-| `reset_pseudonyms()`               | Clear pseudonymization cache                 |
-| `reset()`                          | Reset all state                              |
+| Parameter        | Type                          | Default   | Description                                              |
+| ---------------- | ----------------------------- | --------- | -------------------------------------------------------- |
+| `locale`         | `str`                         | `"es_ES"` | Language/country code for locale-specific PII patterns    |
+| `strategy`       | `str \| Strategy`             | `"redact"`| Default anonymization strategy                           |
+| `seed`           | `int \| None`                 | `None`    | Random seed for reproducible replacements                |
+| `mask_char`      | `str`                         | `"*"`     | Single character used by the built-in mask logic         |
+| `custom_mask_fn` | `Callable[[str,PiiType],str]` | `None`    | Global custom mask function — overrides built-in masking |
+
+| Method                                       | Description                                  |
+| -------------------------------------------- | -------------------------------------------- |
+| `detect_pii(text, ...)`                      | Detect PII entities in text                  |
+| `anonymize_text(text, ...)`                  | Detect and anonymize PII in text             |
+| `anonymize_dict(record, ...)`                | Anonymize dictionary values                  |
+| `anonymize_records(records, ...)`            | Anonymize list of dicts                      |
+| `anonymize_batch(texts, ...)`                | Anonymize list of strings                    |
+| `anonymize_columns(df, ...)`                 | Anonymize DataFrame columns                  |
+| `anonymize_dataframe(df, ...)`               | Apply k-anonymity (python-anonymity)         |
+| `apply_l_diversity(df, ...)`                 | Apply l-diversity                            |
+| `apply_t_closeness(df, ...)`                 | Apply t-closeness                            |
+| `measure_privacy(df, ...)`                   | Measure privacy metrics (pycanon)            |
+| `summary(result)`                            | Get anonymization statistics                 |
+| `set_strategy(strategy, pii_type)`           | Set strategy (global or per-type)            |
+| `set_mask_function(fn, pii_type)`            | Register custom mask function (global or per-type) |
+| `add_pattern(name, pattern)`                 | Register custom regex                        |
+| `reset_pseudonyms()`                         | Clear pseudonymization cache                 |
+| `reset()`                                    | Reset all state                              |
 
 **Key parameters for dict/records/columns methods:**
 
@@ -485,6 +525,7 @@ All examples are in the `examples/` folder, organized by theme:
 | File                      | Theme                    | Description                                                              | Guide sections |
 | ------------------------- | ------------------------ | ------------------------------------------------------------------------ | -------------- |
 | `text_strategies.py`    | Text Anonymization       | PII detection, all 7 strategies, per-type dispatch, custom patterns      | 3.1–3.7, 5.2  |
+| `custom_masking.py`     | Custom Masking           | Custom mask char, per-type mask functions (IP, PCI-DSS, email, ID, phone), GDPR combined masks | 3.1            |
 | `dict_records.py`       | Records & Dictionaries   | Auto-detect fields, explicit types, field whitelist, batch, pseudonymize | 5.3            |
 | `dataframe_privacy.py`  | DataFrame & Privacy      | Column anonymization, k-anonymity, l-diversity, t-closeness, metrics     | 3.8, 5.4      |
 | `multi_locale.py`       | Multi-locale             | 8-locale PII detection, fake data generation by country                  | 5.9            |

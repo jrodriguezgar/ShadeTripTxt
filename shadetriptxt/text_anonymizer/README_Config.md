@@ -37,6 +37,7 @@ create_sample_config('anonymizer_config.json')
 | `locale` | `es_ES` | Anonymization locale |
 | `strategy` | `redact` | Default strategy (`mask`, `replace`, `hash`, `redact`, `generalize`, `pseudonymize`, `suppress`) |
 | `seed` | `None` | Random seed for reproducible output |
+| `mask_char` | `*` | Single character used by the built-in mask logic |
 | `detection.use_regex` | `True` | Enable regex PII detection |
 | `detection.use_spacy` | `False` | Enable spaCy NER detection |
 | `detection.use_nltk` | `False` | Enable NLTK NER detection |
@@ -73,7 +74,8 @@ Auto-discovered filenames (searched in current directory):
   "anonymizer": {
     "locale": "es_ES",
     "strategy": "redact",
-    "seed": null
+    "seed": null,
+    "mask_char": "*"
   },
   "detection": {
     "use_regex": true,
@@ -98,6 +100,7 @@ Auto-discovered filenames (searched in current directory):
 [anonymizer]
 locale = "es_ES"
 strategy = "redact"
+mask_char = "*"
 
 [detection]
 use_regex = true
@@ -146,6 +149,7 @@ anon = TextAnonymizer(
     locale=config.get('locale', 'es_ES'),
     strategy=config.get('strategy', 'redact'),
     seed=config.get('seed', type=int),
+    mask_char=config.get('mask_char', '*'),
 )
 
 # Apply per-type overrides from config

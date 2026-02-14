@@ -37,11 +37,13 @@ from shadetriptxt.text_anonymizer import TextAnonymizer
 anon = TextAnonymizer(locale, strategy, seed)
 ```
 
-| Parameter  | Type              | Default     | Description |
-|------------|-------------------|-------------|-------------|
-| `locale`   | `str`             | `"es_ES"`   | Language/country code that determines locale-specific PII patterns (ID documents, phone numbers, postcodes) and the spaCy/NLTK models used for NER. See [Supported Locales](#11-supported-locales). |
-| `strategy` | `str \| Strategy` | `"redact"`  | Default anonymization strategy applied to all detected PII. Can be overridden per PII type with `set_strategy()` or per call with the `strategy` parameter. One of: `mask`, `replace`, `hash`, `redact`, `generalize`, `pseudonymize`, `suppress`. |
-| `seed`     | `int \| None`     | `None`      | Random seed for reproducible replacements. When set, `replace` and `pseudonymize` strategies generate the same fake data across runs. Essential for deterministic testing. |
+| Parameter        | Type                          | Default     | Description |
+|------------------|-------------------------------|-------------|-------------|
+| `locale`         | `str`                         | `"es_ES"`   | Language/country code that determines locale-specific PII patterns (ID documents, phone numbers, postcodes) and the spaCy/NLTK models used for NER. See [Supported Locales](#11-supported-locales). |
+| `strategy`       | `str \| Strategy`             | `"redact"`  | Default anonymization strategy applied to all detected PII. Can be overridden per PII type with `set_strategy()` or per call with the `strategy` parameter. One of: `mask`, `replace`, `hash`, `redact`, `generalize`, `pseudonymize`, `suppress`. |
+| `seed`           | `int \| None`                 | `None`      | Random seed for reproducible replacements. When set, `replace` and `pseudonymize` strategies generate the same fake data across runs. Essential for deterministic testing. |
+| `mask_char`      | `str`                         | `"*"`       | Single character used by the built-in mask logic. Must be exactly one character. Changes the masking character from `*` to any other symbol (e.g. `#`, `X`, `·`). |
+| `custom_mask_fn` | `Callable[[str, PiiType], str] \| None` | `None` | Optional callable `(text, pii_type) -> str` that **replaces the entire built-in mask logic** when the `mask` strategy is applied. Receives the original PII value and its type; must return the masked string. Can also be set after construction with `set_mask_function()`. |
 
 **Examples:**
 
@@ -54,6 +56,15 @@ anon = TextAnonymizer(locale="en_US", strategy="mask", seed=42)
 
 # Brazilian Portuguese, replace with fake data
 anon = TextAnonymizer(locale="pt_BR", strategy="replace")
+
+# Custom mask character
+anon = TextAnonymizer(strategy="mask", mask_char="#")
+
+# Custom mask function at construction time
+anon = TextAnonymizer(
+    strategy="mask",
+    custom_mask_fn=lambda text, pt: "X" * len(text),
+)
 ```
 
 ---
@@ -279,9 +290,11 @@ print(result.anonymized)
 | Statistical utility | No |
 | Best for          | Audits, format verification, customer-facing displays |
 
-**Behavior by PII type:**
+**Behavior by PII type (built-in logic):**
 
-| PII Type      | Masking Rule | Example |
+The default mask character is `*`, configurable via the `mask_char` constructor parameter.
+
+| PII Type      | Masking Rule | Example (`mask_char="*"`) |
 |---------------|-------------|---------|
 | `EMAIL`       | Keep first char of local part, mask domain, replace TLD with `***` | `juan@empresa.com` → `j***@*******.***` |
 | `PHONE`       | Keep last 4 digits, mask the rest | `+34 612 345 678` → `*******5678` |
@@ -313,6 +326,55 @@ print(result.anonymized)
 result = anon.anonymize_text("Name: Juan García López")
 # (detected via spaCy NER — requires use_spacy=True)
 ```
+
+**Custom mask character:**
+
+```python
+anon = TextAnonymizer(locale="es_ES", strategy="mask", mask_char="#")
+result = anon.anonymize_text("Email: juan@test.com")
+print(result.anonymized)
+# → "Email: j###@####.###"
+```
+
+**Custom mask function (global):**
+
+Override the entire built-in mask logic with a callable `(text, pii_type) -> str`:
+
+```python
+anon = TextAnonymizer(strategy="mask")
+anon.set_mask_function(lambda text, pt: "X" * len(text))
+
+result = anon.anonymize_text("DNI: 12345678Z, email: juan@test.com")
+print(result.anonymized)
+# → "DNI: XXXXXXXXX, email: XXXXXXXXXXXXXX"
+```
+
+**Custom mask function (per PII type):**
+
+Apply different custom functions depending on the PII type:
+
+```python
+anon = TextAnonymizer(strategy="mask")
+
+# Emails: show first char + fixed pattern
+anon.set_mask_function(
+    lambda text, pt: text[0] + "···@···.···",
+    pii_type="EMAIL",
+)
+
+# IDs: full replacement with dashes
+anon.set_mask_function(
+    lambda text, pt: "-" * len(text),
+    pii_type="ID_DOCUMENT",
+)
+
+# Everything else uses the built-in logic
+result = anon.anonymize_text("DNI: 12345678Z, email: juan@test.com, IP: 192.168.1.1")
+print(result.anonymized)
+# → "DNI: ---------, email: j···@···.···, IP: 1*********1"
+```
+
+**Priority resolution:** per-type function → global function → built-in logic (with `mask_char`).
 
 ---
 
@@ -1006,7 +1068,8 @@ Configuration can be loaded from JSON, YAML, or TOML files using the `Config` cl
   "anonymizer": {
     "locale": "es_ES",
     "strategy": "redact",
-    "seed": null
+    "seed": null,
+    "mask_char": "*"
   },
   "detection": {
     "use_regex": true,
@@ -1068,6 +1131,7 @@ anon = TextAnonymizer(
     locale=config.get("locale", "es_ES"),
     strategy=config.get("strategy", "redact"),
     seed=config.get("seed", type=int),
+    mask_char=config.get("mask_char", "*"),
 )
 
 # Generate a sample config file

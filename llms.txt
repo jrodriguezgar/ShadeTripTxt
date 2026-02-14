@@ -67,6 +67,8 @@ No environment variables required. All behaviour is configured through construct
 | `config` | TextMatcher | MatcherConfig with preset profiles | `MatcherConfig.default()` |
 | `strategy` | TextAnonymizer | Anonymization strategy enum | `Strategy.REDACT` |
 | `seed` | TextAnonymizer | Reproducible pseudonymization seed | `None` |
+| `mask_char` | TextAnonymizer | Single character for built-in masking | `"*"` |
+| `custom_mask_fn` | TextAnonymizer | Callable `(text, pii_type) -> str` overriding mask logic | `None` |
 | `language` | EncodingFixer, LanguageNormalizer | ISO 639-1 language code | `None` / `es` |
 
 Dependencies and optional extras are declared in `pyproject.toml`:
@@ -194,6 +196,13 @@ result = anon.anonymize_text("DNI: 12345678Z, email: juan@test.com")
 # Per-type strategy
 anon.set_strategy("mask", pii_type="EMAIL")
 anon.set_strategy("hash", pii_type="ID_DOCUMENT")
+
+# Custom mask character
+anon_custom = TextAnonymizer(strategy="mask", mask_char="#")
+
+# Custom mask function (global or per-type)
+anon.set_mask_function(lambda text, pt: "X" * len(text))                     # global
+anon.set_mask_function(lambda text, pt: text[0] + "·" * (len(text)-1), pii_type="EMAIL")  # per-type
 
 # Detection engines (combinable)
 entities = anon.detect_pii(text, use_regex=True, use_spacy=True, use_nltk=True)

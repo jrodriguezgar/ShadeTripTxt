@@ -313,6 +313,8 @@ class TextAnonymizer:
         locale: str = "es_ES",
         strategy: Union[str, Strategy] = Strategy.REDACT,
         seed: Optional[int] = None,
+        mask_char: str = "*",
+        custom_mask_fn: Optional[Callable[[str, PiiType], str]] = None,
     ):
         """
         Initialize the anonymizer.
@@ -321,10 +323,20 @@ class TextAnonymizer:
             locale: Language/country code (e.g. 'es_ES', 'en_US').
             strategy: Default anonymization strategy.
             seed: Optional seed for reproducible replacements.
+            mask_char: Character used for masking (default '*').
+                Must be a single character.
+            custom_mask_fn: Optional callable ``(text, pii_type) -> str``
+                that overrides the built-in mask logic entirely when the
+                ``mask`` strategy is applied.  Receives the original PII
+                value and its type; must return the masked string.
         """
+        if len(mask_char) != 1:
+            raise ValueError("mask_char must be a single character.")
+
         self.locale = locale
         self.strategy = Strategy(strategy) if isinstance(strategy, str) else strategy
         self.seed = seed
+        self.mask_char: str = mask_char
         self.profile = LOCALE_PROFILES.get(locale)
 
         # Lazy-loaded references (None until first use)
@@ -340,6 +352,12 @@ class TextAnonymizer:
 
         # Per-type strategy overrides
         self._type_strategies: Dict[PiiType, Strategy] = {}
+
+        # Custom mask function: (text, pii_type) -> str
+        self._custom_mask_fn: Optional[Callable[[str, PiiType], str]] = custom_mask_fn
+
+        # Per-type custom mask functions
+        self._type_mask_fns: Dict[PiiType, Callable[[str, PiiType], str]] = {}
 
         if seed is not None:
             import random as _rnd
@@ -413,6 +431,47 @@ class TextAnonymizer:
             self._type_strategies[pt] = s
         else:
             self.strategy = s
+        return self
+
+    def set_mask_function(
+        self,
+        fn: Callable[[str, PiiType], str],
+        pii_type: Optional[Union[str, PiiType]] = None,
+    ) -> "TextAnonymizer":
+        """
+        Register a custom mask function.
+
+        When the ``mask`` strategy is applied, this callable is invoked
+        instead of the built-in ``_mask`` logic.
+
+        Args:
+            fn: Callable ``(text, pii_type) -> str``.  Must return the
+                masked version of *text*.
+            pii_type: If given, the custom function applies **only** to
+                this PII type.  If ``None`` (default), it applies globally
+                to every PII type that uses ``mask``.
+
+        Returns:
+            self (for chaining).
+
+        Example::
+
+            anon = TextAnonymizer(strategy="mask")
+
+            # Global custom mask
+            anon.set_mask_function(lambda text, pt: "X" * len(text))
+
+            # Per-type custom mask
+            anon.set_mask_function(
+                lambda text, pt: text[0] + "#" * (len(text) - 1),
+                pii_type="EMAIL",
+            )
+        """
+        if pii_type is not None:
+            pt = PiiType(pii_type) if isinstance(pii_type, str) else pii_type
+            self._type_mask_fns[pt] = fn
+        else:
+            self._custom_mask_fn = fn
         return self
 
     def add_pattern(
@@ -642,33 +701,48 @@ class TextAnonymizer:
     # ───────────────────────────────────────────────────────────────────
 
     def _mask(self, text: str, pii_type: PiiType) -> str:
-        """Mask PII by replacing characters with '*'."""
+        """Mask PII by replacing characters with ``mask_char``.
+
+        If a custom mask function was registered (globally via the
+        constructor / ``set_mask_function``, or per-type), it takes
+        precedence over the built-in logic.
+        """
+        # 1. Per-type custom mask function wins
+        if pii_type in self._type_mask_fns:
+            return self._type_mask_fns[pii_type](text, pii_type)
+
+        # 2. Global custom mask function
+        if self._custom_mask_fn is not None:
+            return self._custom_mask_fn(text, pii_type)
+
+        # 3. Built-in mask logic using self.mask_char
+        c = self.mask_char
         if pii_type == PiiType.EMAIL:
             parts = text.split("@")
             if len(parts) == 2:
-                local = parts[0][0] + "*" * (len(parts[0]) - 1) if parts[0] else "***"
+                local = parts[0][0] + c * (len(parts[0]) - 1) if parts[0] else c * 3
                 domain_parts = parts[1].split(".")
-                masked_domain = "*" * len(domain_parts[0]) if domain_parts else "***"
-                return f"{local}@{masked_domain}.***"
-            return "*" * len(text)
+                masked_domain = c * len(domain_parts[0]) if domain_parts else c * 3
+                return f"{local}@{masked_domain}.{c * 3}"
+            return c * len(text)
         if pii_type == PiiType.PHONE:
             digits = re.sub(r"\D", "", text)
             if len(digits) > 4:
-                return "*" * (len(digits) - 4) + digits[-4:]
-            return "*" * len(text)
+                return c * (len(digits) - 4) + digits[-4:]
+            return c * len(text)
         if pii_type == PiiType.CREDIT_CARD:
             digits = re.sub(r"\D", "", text)
             if len(digits) > 4:
-                return "*" * (len(digits) - 4) + digits[-4:]
-            return "*" * len(text)
+                return c * (len(digits) - 4) + digits[-4:]
+            return c * len(text)
         if pii_type == PiiType.NAME:
             words = text.split()
             return " ".join(
-                w[0] + "*" * (len(w) - 1) if len(w) > 1 else "*"
+                w[0] + c * (len(w) - 1) if len(w) > 1 else c
                 for w in words
             )
         # Generic masking
-        return text[0] + "*" * (len(text) - 2) + text[-1] if len(text) > 2 else "*" * len(text)
+        return text[0] + c * (len(text) - 2) + text[-1] if len(text) > 2 else c * len(text)
 
     def _replace(self, text: str, pii_type: PiiType) -> str:
         """Replace PII with realistic locale-aware fake data (via TextDummy)."""
@@ -1257,6 +1331,9 @@ class TextAnonymizer:
         self._dummy = None
         self._custom_patterns.clear()
         self._type_strategies.clear()
+        self._custom_mask_fn = None
+        self._type_mask_fns.clear()
+        self.mask_char = "*"
 
     # ───────────────────────────────────────────────────────────────────
     # Repr
