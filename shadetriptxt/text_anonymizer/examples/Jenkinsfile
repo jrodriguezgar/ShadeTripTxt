@@ -1,0 +1,114 @@
+// TextAnonymizer - Jenkins Pipeline
+// Copy to repo root as "Jenkinsfile" and adjust parameters/stages.
+//
+// CLI supports:
+//   --ci       → no colors, quiet, JSON output, exit codes
+//   run_api()  → programmatic Python API (CLIResult dataclass)
+//
+// Exit codes: 0=success, 1=runtime error, 2=usage error
+
+pipeline {
+    agent any
+    parameters {
+        choice(name: 'LOCALE', choices: ['es_ES', 'en_US', 'en_GB', 'pt_BR', 'pt_PT', 'fr_FR', 'de_DE', 'it_IT'], description: 'Anonymization locale')
+        choice(name: 'STRATEGY', choices: ['redact', 'mask', 'replace', 'hash', 'generalize', 'pseudonymize', 'suppress'], description: 'Anonymization strategy')
+        string(name: 'INPUT_FILE', defaultValue: 'data/customer_data.csv', description: 'Input file path')
+        string(name: 'OUTPUT_FILE', defaultValue: 'output/anonymized_data.csv', description: 'Output file path')
+        string(name: 'COLUMNS', defaultValue: 'name,email,phone,address', description: 'Comma-separated columns to anonymize')
+        choice(name: 'FORMAT', choices: ['table', 'json', 'csv', 'summary', 'quiet'], description: 'Output format')
+        booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Simulate without changes')
+        booleanParam(name: 'RUN_LINT', defaultValue: true, description: 'Run linter')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run test suite')
+    }
+    environment {
+        PYTHONPATH = '.'
+        PYTHONIOENCODING = 'utf-8'
+        NO_COLOR = '1'
+    }
+    options {
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        disableConcurrentBuilds()
+    }
+    stages {
+        stage('Setup') {
+            steps {
+                sh 'pip install uv && uv sync --quiet'
+            }
+        }
+        stage('Lint') {
+            when { expression { params.RUN_LINT } }
+            steps {
+                sh 'uv run ruff check shadetriptxt/text_anonymizer/'
+            }
+        }
+        stage('Test') {
+            when { expression { params.RUN_TESTS } }
+            steps {
+                sh 'uv run pytest tests/ -v --no-color --tb=short --junitxml=reports/junit.xml'
+            }
+            post {
+                always { junit 'reports/junit.xml' }
+            }
+        }
+        stage('Anonymize CSV') {
+            steps {
+                sh """uv run python -m shadetriptxt.text_anonymizer.cli anonymize-csv \
+                       ${params.INPUT_FILE} \
+                       --columns ${params.COLUMNS} \
+                       --strategy ${params.STRATEGY} \
+                       --locale ${params.LOCALE} \
+                       --ci \
+                       -o ${params.OUTPUT_FILE} \
+                       ${params.DRY_RUN ? '--dry-run' : ''}"""
+            }
+        }
+        stage('Detect PII in Logs') {
+            steps {
+                sh '''uv run python -m shadetriptxt.text_anonymizer.cli detect \
+                       "$(cat data/app.log)" \
+                       --locale es_ES \
+                       --ci \
+                       -o output/pii_report.json'''
+            }
+        }
+        stage('Anonymize Text File') {
+            steps {
+                sh """uv run python -m shadetriptxt.text_anonymizer.cli anonymize-file \
+                       data/raw_text.txt \
+                       --strategy ${params.STRATEGY} \
+                       --locale ${params.LOCALE} \
+                       --ci \
+                       -o output/anonymized_text.txt"""
+            }
+        }
+        stage('Verify') {
+            steps {
+                sh 'ls -la output/'
+                sh 'test -s ${OUTPUT_FILE} || exit 1'
+            }
+        }
+        stage('API Test') {
+            steps {
+                sh '''uv run python -c "
+from shadetriptxt.text_anonymizer.cli import run_api
+result = run_api(['anonymize', 'DNI: 12345678Z, email: test@example.com', '--locale', 'es_ES'])
+assert result.ok, f'API call failed: {result.error}'
+print(f'Stats: {result.stats}')
+"'''
+            }
+        }
+    }
+    post {
+        success {
+            archiveArtifacts artifacts: 'output/**,reports/**', fingerprint: true
+        }
+        failure {
+            echo 'Anonymization pipeline failed — check stage logs above'
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}

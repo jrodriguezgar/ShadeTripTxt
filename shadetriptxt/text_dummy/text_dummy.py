@@ -7,9 +7,20 @@ useful for testing, development, and demos. Supports multiple locales
 formats, currency, postal codes, etc.).
 """
 
-from typing import Optional, List, Dict, Any, Callable, Union, Sequence
+from __future__ import annotations
+
+from typing import Optional, List, Dict, Any, Callable, Union, Sequence, TYPE_CHECKING
 from dataclasses import dataclass, field
 import random as _random
+
+from shadetriptxt.utils._locale import BaseLocaleProfile
+import string
+import datetime
+import uuid
+import unicodedata
+
+if TYPE_CHECKING:
+    from faker import Faker
 
 
 class DummyField:
@@ -51,12 +62,11 @@ class DummyField:
 # Locale profiles: metadata and capabilities per country/language
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
-class LocaleProfile:
+class LocaleProfile(BaseLocaleProfile):
     """Profile for a supported locale with its capabilities."""
-    code: str
-    country: str
-    language: str
+
     currency_code: str
     currency_symbol: str
     phone_prefix: str
@@ -70,86 +80,158 @@ class LocaleProfile:
 LOCALE_PROFILES: Dict[str, LocaleProfile] = {
     # --- Spanish ---
     "es_ES": LocaleProfile(
-        code="es_ES", country="Spain", language="Spanish",
-        currency_code="EUR", currency_symbol="€", phone_prefix="+34",
-        id_document_name="DNI/NIF", id_document_method="nif",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="es_ES",
+        country="Spain",
+        language="Spanish",
+        currency_code="EUR",
+        currency_symbol="€",
+        phone_prefix="+34",
+        id_document_name="DNI/NIF",
+        id_document_method="nif",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
         extra_id_documents={"NIE": "nie"},
     ),
     "es_MX": LocaleProfile(
-        code="es_MX", country="Mexico", language="Spanish",
-        currency_code="MXN", currency_symbol="$", phone_prefix="+52",
-        id_document_name="CURP", id_document_method="curp",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="es_MX",
+        country="Mexico",
+        language="Spanish",
+        currency_code="MXN",
+        currency_symbol="$",
+        phone_prefix="+52",
+        id_document_name="CURP",
+        id_document_method="curp",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
         extra_id_documents={"RFC": "rfc"},
     ),
     "es_AR": LocaleProfile(
-        code="es_AR", country="Argentina", language="Spanish",
-        currency_code="ARS", currency_symbol="$", phone_prefix="+54",
-        id_document_name="DNI", id_document_method="dni",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="es_AR",
+        country="Argentina",
+        language="Spanish",
+        currency_code="ARS",
+        currency_symbol="$",
+        phone_prefix="+54",
+        id_document_name="DNI",
+        id_document_method="dni",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
         extra_id_documents={"CUIL": "cuil"},
     ),
     "es_CO": LocaleProfile(
-        code="es_CO", country="Colombia", language="Spanish",
-        currency_code="COP", currency_symbol="$", phone_prefix="+57",
-        id_document_name="Cédula", id_document_method="cedula",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="es_CO",
+        country="Colombia",
+        language="Spanish",
+        currency_code="COP",
+        currency_symbol="$",
+        phone_prefix="+57",
+        id_document_name="Cédula",
+        id_document_method="cedula",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
     ),
     "es_CL": LocaleProfile(
-        code="es_CL", country="Chile", language="Spanish",
-        currency_code="CLP", currency_symbol="$", phone_prefix="+56",
-        id_document_name="RUT", id_document_method="rut",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="es_CL",
+        country="Chile",
+        language="Spanish",
+        currency_code="CLP",
+        currency_symbol="$",
+        phone_prefix="+56",
+        id_document_name="RUT",
+        id_document_method="rut",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
     ),
     # --- English ---
     "en_US": LocaleProfile(
-        code="en_US", country="United States", language="English",
-        currency_code="USD", currency_symbol="$", phone_prefix="+1",
-        id_document_name="SSN", id_document_method="ssn",
-        date_format="%m/%d/%Y", has_state_province=True,
+        code="en_US",
+        country="United States",
+        language="English",
+        currency_code="USD",
+        currency_symbol="$",
+        phone_prefix="+1",
+        id_document_name="SSN",
+        id_document_method="ssn",
+        date_format="%m/%d/%Y",
+        has_state_province=True,
         extra_id_documents={"EIN": "ein"},
     ),
     "en_GB": LocaleProfile(
-        code="en_GB", country="United Kingdom", language="English",
-        currency_code="GBP", currency_symbol="£", phone_prefix="+44",
-        id_document_name="NINO", id_document_method="nino",
-        date_format="%d/%m/%Y", has_state_province=False,
+        code="en_GB",
+        country="United Kingdom",
+        language="English",
+        currency_code="GBP",
+        currency_symbol="£",
+        phone_prefix="+44",
+        id_document_name="NINO",
+        id_document_method="nino",
+        date_format="%d/%m/%Y",
+        has_state_province=False,
     ),
     # --- Portuguese ---
     "pt_BR": LocaleProfile(
-        code="pt_BR", country="Brazil", language="Portuguese",
-        currency_code="BRL", currency_symbol="R$", phone_prefix="+55",
-        id_document_name="CPF", id_document_method="cpf",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="pt_BR",
+        country="Brazil",
+        language="Portuguese",
+        currency_code="BRL",
+        currency_symbol="R$",
+        phone_prefix="+55",
+        id_document_name="CPF",
+        id_document_method="cpf",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
         extra_id_documents={"CNPJ": "cnpj"},
     ),
     "pt_PT": LocaleProfile(
-        code="pt_PT", country="Portugal", language="Portuguese",
-        currency_code="EUR", currency_symbol="€", phone_prefix="+351",
-        id_document_name="NIF", id_document_method="nif",
-        date_format="%d/%m/%Y", has_state_province=False,
+        code="pt_PT",
+        country="Portugal",
+        language="Portuguese",
+        currency_code="EUR",
+        currency_symbol="€",
+        phone_prefix="+351",
+        id_document_name="NIF",
+        id_document_method="nif",
+        date_format="%d/%m/%Y",
+        has_state_province=False,
     ),
     # --- French ---
     "fr_FR": LocaleProfile(
-        code="fr_FR", country="France", language="French",
-        currency_code="EUR", currency_symbol="€", phone_prefix="+33",
-        id_document_name="INSEE/NIR", id_document_method="nir",
-        date_format="%d/%m/%Y", has_state_province=False,
+        code="fr_FR",
+        country="France",
+        language="French",
+        currency_code="EUR",
+        currency_symbol="€",
+        phone_prefix="+33",
+        id_document_name="INSEE/NIR",
+        id_document_method="nir",
+        date_format="%d/%m/%Y",
+        has_state_province=False,
     ),
     # --- German ---
     "de_DE": LocaleProfile(
-        code="de_DE", country="Germany", language="German",
-        currency_code="EUR", currency_symbol="€", phone_prefix="+49",
-        id_document_name="Personalausweis", id_document_method="personalausweis",
-        date_format="%d.%m.%Y", has_state_province=True,
+        code="de_DE",
+        country="Germany",
+        language="German",
+        currency_code="EUR",
+        currency_symbol="€",
+        phone_prefix="+49",
+        id_document_name="Personalausweis",
+        id_document_method="personalausweis",
+        date_format="%d.%m.%Y",
+        has_state_province=True,
     ),
     # --- Italian ---
     "it_IT": LocaleProfile(
-        code="it_IT", country="Italy", language="Italian",
-        currency_code="EUR", currency_symbol="€", phone_prefix="+39",
-        id_document_name="Codice Fiscale", id_document_method="codice_fiscale",
-        date_format="%d/%m/%Y", has_state_province=True,
+        code="it_IT",
+        country="Italy",
+        language="Italian",
+        currency_code="EUR",
+        currency_symbol="€",
+        phone_prefix="+39",
+        id_document_name="Codice Fiscale",
+        id_document_method="codice_fiscale",
+        date_format="%d/%m/%Y",
+        has_state_province=True,
     ),
 }
 
@@ -158,7 +240,8 @@ LOCALE_PROFILES: Dict[str, LocaleProfile] = {
 # Internal ID document generators per country
 # ---------------------------------------------------------------------------
 
-def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optional[str] = None, rng: Optional[_random.Random] = None) -> str:
+
+def _generate_id_document(fake: Faker, profile: LocaleProfile, doc_type: Optional[str] = None, rng: Optional[_random.Random] = None) -> str:
     """
     Generate a fake ID document based on the locale.
 
@@ -166,8 +249,6 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
     generates a valid synthetic value.
     """
     random = rng if rng is not None else _random.Random()
-    import string
-
     method_name = doc_type or profile.id_document_method
 
     # Resolve extra document aliases
@@ -196,20 +277,53 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
 
     if code == "es_MX":
         if method_name == "curp":
-            letters = ''.join(random.choices(string.ascii_uppercase, k=4))
-            date = f"{random.randint(70,99):02d}{random.randint(1,12):02d}{random.randint(1,28):02d}"
+            letters = "".join(random.choices(string.ascii_uppercase, k=4))
+            date = f"{random.randint(70, 99):02d}{random.randint(1, 12):02d}{random.randint(1, 28):02d}"
             sex = random.choice("HM")
-            state = random.choice(["AS","BC","BS","CC","CL","CM","CS","CH","DF","DG",
-                                   "GT","GR","HG","JC","MC","MN","MS","NT","NL","OC",
-                                   "PL","QT","QR","SP","SL","SR","TC","TS","TL","VZ","YN","ZS"])
-            cons = ''.join(random.choices(string.ascii_uppercase, k=3))
+            state = random.choice(
+                [
+                    "AS",
+                    "BC",
+                    "BS",
+                    "CC",
+                    "CL",
+                    "CM",
+                    "CS",
+                    "CH",
+                    "DF",
+                    "DG",
+                    "GT",
+                    "GR",
+                    "HG",
+                    "JC",
+                    "MC",
+                    "MN",
+                    "MS",
+                    "NT",
+                    "NL",
+                    "OC",
+                    "PL",
+                    "QT",
+                    "QR",
+                    "SP",
+                    "SL",
+                    "SR",
+                    "TC",
+                    "TS",
+                    "TL",
+                    "VZ",
+                    "YN",
+                    "ZS",
+                ]
+            )
+            cons = "".join(random.choices(string.ascii_uppercase, k=3))
             digit = str(random.randint(0, 9))
             check = str(random.randint(0, 9))
             return f"{letters}{date}{sex}{state}{cons}{digit}{check}"
         if method_name == "rfc":
-            letters = ''.join(random.choices(string.ascii_uppercase, k=4))
-            date = f"{random.randint(70,99):02d}{random.randint(1,12):02d}{random.randint(1,28):02d}"
-            homoclave = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+            letters = "".join(random.choices(string.ascii_uppercase, k=4))
+            date = f"{random.randint(70, 99):02d}{random.randint(1, 12):02d}{random.randint(1, 28):02d}"
+            homoclave = "".join(random.choices(string.ascii_uppercase + string.digits, k=3))
             return f"{letters}{date}{homoclave}"
 
     if code == "es_AR":
@@ -218,7 +332,7 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
         if method_name == "cuil":
             prefix = random.choice(["20", "23", "24", "27"])
             dni = f"{random.randint(10_000_000, 99_999_999)}"
-            return f"{prefix}-{dni}-{random.randint(0,9)}"
+            return f"{prefix}-{dni}-{random.randint(0, 9)}"
 
     if code == "es_CO":
         if method_name == "cedula":
@@ -239,14 +353,14 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
 
     if code == "en_US":
         if method_name == "ssn":
-            return f"{random.randint(100,899):03d}-{random.randint(10,99):02d}-{random.randint(1000,9999):04d}"
+            return f"{random.randint(100, 899):03d}-{random.randint(10, 99):02d}-{random.randint(1000, 9999):04d}"
         if method_name == "ein":
-            return f"{random.randint(10,99):02d}-{random.randint(1000000,9999999):07d}"
+            return f"{random.randint(10, 99):02d}-{random.randint(1000000, 9999999):07d}"
 
     if code == "en_GB":
         if method_name == "nino":
-            p1 = ''.join(random.choices("ABCEGHJKLMNPRSTWXYZ", k=2))
-            nums = f"{random.randint(10,99):02d}{random.randint(10,99):02d}{random.randint(10,99):02d}"
+            p1 = "".join(random.choices("ABCEGHJKLMNPRSTWXYZ", k=2))
+            nums = f"{random.randint(10, 99):02d}{random.randint(10, 99):02d}{random.randint(10, 99):02d}"
             suffix = random.choice("ABCD")
             return f"{p1}{nums}{suffix}"
 
@@ -261,7 +375,7 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
             d2 = 11 - (s2 % 11)
             d2 = 0 if d2 >= 10 else d2
             nums.append(d2)
-            n = ''.join(map(str, nums))
+            n = "".join(map(str, nums))
             return f"{n[:3]}.{n[3:6]}.{n[6:9]}-{n[9:]}"
         if method_name == "cnpj":
             base = [random.randint(0, 9) for _ in range(8)] + [0, 0, 0, 1]
@@ -275,7 +389,7 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
             d2 = 11 - (s2 % 11)
             d2 = 0 if d2 >= 10 else d2
             base.append(d2)
-            n = ''.join(map(str, base))
+            n = "".join(map(str, base))
             return f"{n[:2]}.{n[2:5]}.{n[5:8]}/{n[8:12]}-{n[12:]}"
 
     if code == "pt_PT":
@@ -285,34 +399,34 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
             s = sum(nums[i] * (9 - i) for i in range(8))
             check = 11 - (s % 11)
             check = 0 if check >= 10 else check
-            return ''.join(map(str, nums)) + str(check)
+            return "".join(map(str, nums)) + str(check)
 
     if code == "it_IT":
         if method_name == "codice_fiscale":
-            letters = ''.join(random.choices(string.ascii_uppercase, k=6))
-            date_part = f"{random.randint(50,99):02d}{random.choice('ABCDEHLMPRST')}{random.randint(1,28):02d}"
-            code_part = random.choice("FMZH") + f"{random.randint(100,999)}"
+            letters = "".join(random.choices(string.ascii_uppercase, k=6))
+            date_part = f"{random.randint(50, 99):02d}{random.choice('ABCDEHLMPRST')}{random.randint(1, 28):02d}"
+            code_part = random.choice("FMZH") + f"{random.randint(100, 999)}"
             check = random.choice(string.ascii_uppercase)
             return f"{letters}{date_part}{code_part}{check}"
 
     if code == "de_DE":
         if method_name == "personalausweis":
-            return ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+            return "".join(random.choices(string.ascii_uppercase + string.digits, k=10))
 
     if code == "fr_FR":
         if method_name == "nir":
             sex = random.choice(["1", "2"])
-            year = f"{random.randint(50,99):02d}"
-            month = f"{random.randint(1,12):02d}"
-            dept = f"{random.randint(1,95):02d}"
-            commune = f"{random.randint(1,999):03d}"
-            order = f"{random.randint(1,999):03d}"
+            year = f"{random.randint(50, 99):02d}"
+            month = f"{random.randint(1, 12):02d}"
+            dept = f"{random.randint(1, 95):02d}"
+            commune = f"{random.randint(1, 999):03d}"
+            order = f"{random.randint(1, 999):03d}"
             base = int(f"{sex}{year}{month}{dept}{commune}{order}")
             key = f"{97 - (base % 97):02d}"
             return f"{sex} {year} {month} {dept} {commune} {order} {key}"
 
     # Fallback — generic
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=12))
 
 
 # ---------------------------------------------------------------------------
@@ -321,110 +435,223 @@ def _generate_id_document(fake: "Faker", profile: LocaleProfile, doc_type: Optio
 
 _FIELD_NAME_GENERATORS: Dict[str, str] = {
     # Direct method names
-    "name": "name", "first_name": "first_name", "last_name": "last_name",
-    "email": "email", "phone": "phone", "address": "address",
-    "city": "city", "state": "state", "postcode": "postcode",
-    "country": "country", "company": "company", "job": "job",
-    "department": "department", "url": "url", "domain_name": "domain_name",
-    "username": "username", "userlogin": "userlogin", "password": "password",
-    "ipv4": "ipv4", "ipv6": "ipv6", "iban": "iban", "bban": "bban",
-    "swift": "swift", "date": "date", "latitude": "latitude",
-    "longitude": "longitude", "coordinate": "coordinate",
-    "color_name": "color_name", "hex_color": "hex_color",
-    "rgb_color": "rgb_color", "license_plate": "license_plate",
-    "mac_address": "mac_address", "user_agent": "user_agent",
-    "slug": "slug", "uuid4": "uuid4", "file_name": "file_name",
-    "file_extension": "file_extension", "mime_type": "mime_type",
-    "file_path": "file_path", "date_of_birth": "date_of_birth",
-    "prefix": "prefix", "suffix": "suffix", "ssn": "ssn",
+    "name": "name",
+    "first_name": "first_name",
+    "last_name": "last_name",
+    "email": "email",
+    "phone": "phone",
+    "address": "address",
+    "city": "city",
+    "state": "state",
+    "postcode": "postcode",
+    "country": "country",
+    "company": "company",
+    "job": "job",
+    "department": "department",
+    "url": "url",
+    "domain_name": "domain_name",
+    "username": "username",
+    "userlogin": "userlogin",
+    "password": "password",
+    "ipv4": "ipv4",
+    "ipv6": "ipv6",
+    "iban": "iban",
+    "bban": "bban",
+    "swift": "swift",
+    "date": "date",
+    "latitude": "latitude",
+    "longitude": "longitude",
+    "coordinate": "coordinate",
+    "color_name": "color_name",
+    "hex_color": "hex_color",
+    "rgb_color": "rgb_color",
+    "license_plate": "license_plate",
+    "mac_address": "mac_address",
+    "user_agent": "user_agent",
+    "slug": "slug",
+    "uuid4": "uuid4",
+    "file_name": "file_name",
+    "file_extension": "file_extension",
+    "mime_type": "mime_type",
+    "file_path": "file_path",
+    "date_of_birth": "date_of_birth",
+    "prefix": "prefix",
+    "suffix": "suffix",
+    "ssn": "ssn",
     "credit_card_number": "credit_card_number",
-    "product_name": "product_name", "product_category": "product_category",
-    "product_material": "product_material", "product_sku": "product_sku",
-    "order_status": "order_status", "tracking_number": "tracking_number",
-    "invoice_number": "invoice_number", "payment_method": "payment_method",
-    "dni": "dni", "id_document": "id_document",
+    "product_name": "product_name",
+    "product_category": "product_category",
+    "product_material": "product_material",
+    "product_sku": "product_sku",
+    "order_status": "order_status",
+    "tracking_number": "tracking_number",
+    "invoice_number": "invoice_number",
+    "payment_method": "payment_method",
+    "dni": "dni",
+    "id_document": "id_document",
     "cryptocurrency_code": "cryptocurrency_code",
     "cryptocurrency_name": "cryptocurrency_name",
-    "random_number": "random_number", "random_date": "random_date",
-    "unique_key": "unique_key", "autoincrement": "autoincrement",
-    "gender": "gender", "age": "age",
+    "random_number": "random_number",
+    "random_date": "random_date",
+    "unique_key": "unique_key",
+    "autoincrement": "autoincrement",
+    "gender": "gender",
+    "age": "age",
     # Common aliases
-    "full_name": "name", "fullname": "name", "nombre": "name",
-    "firstname": "first_name", "nombre_propio": "first_name",
-    "lastname": "last_name", "surname": "last_name",
-    "family_name": "last_name", "apellido": "last_name",
-    "mail": "email", "email_address": "email", "correo": "email",
-    "phone_number": "phone", "telephone": "phone", "tel": "phone",
-    "mobile": "phone", "cell": "phone", "telefono": "phone",
-    "zip_code": "postcode", "zip": "postcode", "postal_code": "postcode",
-    "zipcode": "postcode", "codigo_postal": "postcode",
-    "street": "address", "street_address": "address", "direccion": "address",
-    "ciudad": "city", "town": "city",
-    "provincia": "state", "region": "state", "province": "state",
-    "pais": "country", "nation": "country",
-    "empresa": "company", "organization": "company", "org": "company",
-    "job_title": "job", "position": "job", "cargo": "job",
-    "departamento": "department", "dept": "department",
-    "website": "url", "site": "url", "webpage": "url", "web": "url",
-    "domain": "domain_name", "host": "domain_name", "dominio": "domain_name",
-    "user": "username", "login": "userlogin", "user_name": "username",
-    "user_login": "userlogin", "signin": "userlogin",
-    "ip": "ipv4", "ip_address": "ipv4",
-    "title": "sentence", "titulo": "sentence",
-    "description": "sentence", "descripcion": "sentence",
-    "bio": "sentence", "about": "sentence",
-    "comment": "sentence", "note": "sentence",
-    "nif": "dni", "document": "id_document", "documento": "id_document",
-    "credit_card": "credit_card_number", "card_number": "credit_card_number",
+    "full_name": "name",
+    "fullname": "name",
+    "nombre": "name",
+    "firstname": "first_name",
+    "nombre_propio": "first_name",
+    "lastname": "last_name",
+    "surname": "last_name",
+    "family_name": "last_name",
+    "apellido": "last_name",
+    "mail": "email",
+    "email_address": "email",
+    "correo": "email",
+    "phone_number": "phone",
+    "telephone": "phone",
+    "tel": "phone",
+    "mobile": "phone",
+    "cell": "phone",
+    "telefono": "phone",
+    "zip_code": "postcode",
+    "zip": "postcode",
+    "postal_code": "postcode",
+    "zipcode": "postcode",
+    "codigo_postal": "postcode",
+    "street": "address",
+    "street_address": "address",
+    "direccion": "address",
+    "ciudad": "city",
+    "town": "city",
+    "provincia": "state",
+    "region": "state",
+    "province": "state",
+    "pais": "country",
+    "nation": "country",
+    "empresa": "company",
+    "organization": "company",
+    "org": "company",
+    "job_title": "job",
+    "position": "job",
+    "cargo": "job",
+    "departamento": "department",
+    "dept": "department",
+    "website": "url",
+    "site": "url",
+    "webpage": "url",
+    "web": "url",
+    "domain": "domain_name",
+    "host": "domain_name",
+    "dominio": "domain_name",
+    "user": "username",
+    "login": "userlogin",
+    "user_name": "username",
+    "user_login": "userlogin",
+    "signin": "userlogin",
+    "ip": "ipv4",
+    "ip_address": "ipv4",
+    "title": "sentence",
+    "titulo": "sentence",
+    "description": "sentence",
+    "descripcion": "sentence",
+    "bio": "sentence",
+    "about": "sentence",
+    "comment": "sentence",
+    "note": "sentence",
+    "nif": "dni",
+    "document": "id_document",
+    "documento": "id_document",
+    "credit_card": "credit_card_number",
+    "card_number": "credit_card_number",
     "tarjeta": "credit_card_number",
-    "uuid": "uuid4", "guid": "uuid4",
-    "product": "product_name", "producto": "product_name",
-    "category": "product_category", "categoria": "product_category",
+    "uuid": "uuid4",
+    "guid": "uuid4",
+    "product": "product_name",
+    "producto": "product_name",
+    "category": "product_category",
+    "categoria": "product_category",
     "material": "product_material",
     "sku": "product_sku",
-    "price": "price", "precio": "price",
+    "price": "price",
+    "precio": "price",
     "tracking": "tracking_number",
-    "invoice": "invoice_number", "factura": "invoice_number",
-    "dob": "date_of_birth", "birthdate": "date_of_birth",
-    "birth_date": "date_of_birth", "fecha_nacimiento": "date_of_birth",
+    "invoice": "invoice_number",
+    "factura": "invoice_number",
+    "dob": "date_of_birth",
+    "birthdate": "date_of_birth",
+    "birth_date": "date_of_birth",
+    "fecha_nacimiento": "date_of_birth",
     "mac": "mac_address",
-    "filename": "file_name", "archivo": "file_name",
+    "filename": "file_name",
+    "archivo": "file_name",
     "extension": "file_extension",
     "mime": "mime_type",
-    "isbn": "isbn13", "ean": "ean13", "barcode": "ean13",
+    "isbn": "isbn13",
+    "ean": "ean13",
+    "barcode": "ean13",
     "color": "color_name",
-    "lat": "latitude", "lng": "longitude", "lon": "longitude",
-    "status": "order_status", "estado": "order_status",
-    "payment": "payment_method", "pago": "payment_method",
+    "lat": "latitude",
+    "lng": "longitude",
+    "lon": "longitude",
+    "status": "order_status",
+    "estado": "order_status",
+    "payment": "payment_method",
+    "pago": "payment_method",
     "crypto": "cryptocurrency_code",
-    "matricula": "license_plate", "plate": "license_plate",
-    "numero": "random_number", "number": "random_number",
-    "importe": "random_number", "amount": "random_number",
-    "quantity": "random_number", "cantidad": "random_number",
-    "fecha": "random_date", "fecha_inicio": "random_date",
-    "fecha_fin": "random_date", "start_date": "random_date",
-    "end_date": "random_date", "created_at": "random_date",
+    "matricula": "license_plate",
+    "plate": "license_plate",
+    "numero": "random_number",
+    "number": "random_number",
+    "importe": "random_number",
+    "amount": "random_number",
+    "quantity": "random_number",
+    "cantidad": "random_number",
+    "fecha": "random_date",
+    "fecha_inicio": "random_date",
+    "fecha_fin": "random_date",
+    "start_date": "random_date",
+    "end_date": "random_date",
+    "created_at": "random_date",
     "updated_at": "random_date",
-    "key": "unique_key", "clave": "unique_key",
-    "clave_unica": "unique_key", "unique_id": "unique_key",
-    "codigo": "unique_key", "code": "unique_key",
-    "token": "unique_key", "ref": "unique_key",
-    "reference": "unique_key", "referencia": "unique_key",
-    "id": "autoincrement", "consecutivo": "autoincrement",
-    "secuencia": "autoincrement", "sequence": "autoincrement",
-    "seq": "autoincrement", "counter": "autoincrement",
-    "contador": "autoincrement", "row_id": "autoincrement",
-    "row_number": "autoincrement", "numero_fila": "autoincrement",
-    "genero": "gender", "sexo": "gender", "sex": "gender",
-    "edad": "age", "years_old": "age",
-    "pwd": "password", "pass_word": "password",
-    "contrasena": "password", "clave_acceso": "password",
+    "key": "unique_key",
+    "clave": "unique_key",
+    "clave_unica": "unique_key",
+    "unique_id": "unique_key",
+    "codigo": "unique_key",
+    "code": "unique_key",
+    "token": "unique_key",
+    "ref": "unique_key",
+    "reference": "unique_key",
+    "referencia": "unique_key",
+    "id": "autoincrement",
+    "consecutivo": "autoincrement",
+    "secuencia": "autoincrement",
+    "sequence": "autoincrement",
+    "seq": "autoincrement",
+    "counter": "autoincrement",
+    "contador": "autoincrement",
+    "row_id": "autoincrement",
+    "row_number": "autoincrement",
+    "numero_fila": "autoincrement",
+    "genero": "gender",
+    "sexo": "gender",
+    "sex": "gender",
+    "edad": "age",
+    "years_old": "age",
+    "pwd": "password",
+    "pass_word": "password",
+    "contrasena": "password",
+    "clave_acceso": "password",
 }
 
 
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class TextDummy:
     """Locale-configurable fake data generator."""
@@ -444,6 +671,7 @@ class TextDummy:
         self.seed = seed
         self._rng = _random.Random(seed)
         from faker import Faker  # lazy
+
         self.fake = Faker(locale)
         if seed is not None:
             self.fake.seed_instance(seed)
@@ -566,10 +794,7 @@ class TextDummy:
             ValueError: If the locale has no configured profile.
         """
         if not self.profile:
-            raise ValueError(
-                f"Locale '{self.locale}' has no document profile. "
-                f"Supported locales: {list(LOCALE_PROFILES.keys())}"
-            )
+            raise ValueError(f"Locale '{self.locale}' has no document profile. Supported locales: {list(LOCALE_PROFILES.keys())}")
         return _generate_id_document(self.fake, self.profile, doc_type, rng=self._rng)
 
     def dni(self) -> str:
@@ -623,18 +848,17 @@ class TextDummy:
         try:
             return self.fake.bban()
         except AttributeError:
-            return ''.join(str(self._rng.randint(0, 9)) for _ in range(20))
+            return "".join(str(self._rng.randint(0, 9)) for _ in range(20))
 
     def swift(self) -> str:
         """Generate a fake SWIFT/BIC code."""
         try:
             return self.fake.swift()
         except AttributeError:
-            import string
-            bank = ''.join(self._rng.choices(string.ascii_uppercase, k=4))
+            bank = "".join(self._rng.choices(string.ascii_uppercase, k=4))
             country = self.locale[-2:].upper() if len(self.locale) >= 2 else "XX"
-            location = ''.join(self._rng.choices(string.ascii_uppercase + string.digits, k=2))
-            branch = ''.join(self._rng.choices(string.ascii_uppercase + string.digits, k=3))
+            location = "".join(self._rng.choices(string.ascii_uppercase + string.digits, k=2))
+            branch = "".join(self._rng.choices(string.ascii_uppercase + string.digits, k=3))
             return f"{bank}{country}{location}{branch}"
 
     def credit_card_number(self) -> str:
@@ -704,7 +928,9 @@ class TextDummy:
         )
 
     def _format_number_locale(
-        self, value: Union[int, float], decimals: Optional[int] = None,
+        self,
+        value: Union[int, float],
+        decimals: Optional[int] = None,
     ) -> str:
         """Format a number according to the current locale's conventions."""
         nf = self._get_number_format()
@@ -777,7 +1003,7 @@ class TextDummy:
                 raw = self._rng.randint(int(min_val), int(max_val))
         else:
             lo = 10 ** (digits - 1)
-            hi = (10 ** digits) - 1
+            hi = (10**digits) - 1
             if number_type == "float":
                 raw = round(self._rng.uniform(float(lo), float(hi)), decimals)
             else:
@@ -863,22 +1089,14 @@ class TextDummy:
             gen_us.random_date()
                 # "03/15/1998"  (mm/dd/yyyy)
         """
-        import datetime as _dt
-
-        start_date = (
-            _dt.datetime.strptime(start, "%Y-%m-%d").date()
-            if start else _dt.date(1970, 1, 1)
-        )
-        end_date = (
-            _dt.datetime.strptime(end, "%Y-%m-%d").date()
-            if end else _dt.date.today()
-        )
+        start_date = datetime.datetime.strptime(start, "%Y-%m-%d").date() if start else datetime.date(1970, 1, 1)
+        end_date = datetime.datetime.strptime(end, "%Y-%m-%d").date() if end else datetime.date.today()
 
         delta_days = (end_date - start_date).days
         if delta_days < 0:
             start_date, end_date = end_date, start_date
             delta_days = -delta_days
-        random_day = start_date + _dt.timedelta(days=self._rng.randint(0, delta_days))
+        random_day = start_date + datetime.timedelta(days=self._rng.randint(0, delta_days))
 
         fmt = pattern or (self.profile.date_format if self.profile else "%Y-%m-%d")
         formatted = random_day.strftime(fmt)
@@ -886,8 +1104,7 @@ class TextDummy:
         if mask:
             quarter = (random_day.month - 1) // 3 + 1
             return (
-                mask
-                .replace("{date}", formatted)
+                mask.replace("{date}", formatted)
                 .replace("{year}", f"{random_day.year:04d}")
                 .replace("{month}", f"{random_day.month:02d}")
                 .replace("{day}", f"{random_day.day:02d}")
@@ -953,9 +1170,6 @@ class TextDummy:
             gen.unique_key(key_type="numeric", length=10, prefix="INV-")
                 # "INV-4829173056"
         """
-        import string as _string
-        import uuid as _uuid
-
         if group not in self._used_keys:
             self._used_keys[group] = set()
 
@@ -963,7 +1177,7 @@ class TextDummy:
 
         if key_type == "uuid":
             for _ in range(10_000):
-                raw = str(_uuid.uuid4())
+                raw = str(uuid.uuid4())
                 candidate = f"{prefix}{raw}{suffix}"
                 if candidate not in seen:
                     seen.add(candidate)
@@ -971,17 +1185,14 @@ class TextDummy:
             raise RuntimeError("Could not generate a unique UUID key after 10 000 attempts.")
 
         pools = {
-            "alphanumeric": _string.ascii_letters + _string.digits,
-            "alpha": _string.ascii_letters,
-            "numeric": _string.digits,
-            "hex": _string.digits + "abcdef",
+            "alphanumeric": string.ascii_letters + string.digits,
+            "alpha": string.ascii_letters,
+            "numeric": string.digits,
+            "hex": string.digits + "abcdef",
         }
         pool = pools.get(key_type)
         if pool is None:
-            raise ValueError(
-                f"Unknown key_type '{key_type}'. "
-                f"Valid options: {sorted(pools.keys()) + ['uuid']}"
-            )
+            raise ValueError(f"Unknown key_type '{key_type}'. Valid options: {sorted(pools.keys()) + ['uuid']}")
 
         max_attempts = 100_000
         for _ in range(max_attempts):
@@ -991,17 +1202,14 @@ class TextDummy:
             else:
                 raw = raw.lower()
             if separator and segment_length > 0:
-                parts = [raw[i:i + segment_length] for i in range(0, len(raw), segment_length)]
+                parts = [raw[i : i + segment_length] for i in range(0, len(raw), segment_length)]
                 raw = separator.join(parts)
             candidate = f"{prefix}{raw}{suffix}"
             if candidate not in seen:
                 seen.add(candidate)
                 return candidate
 
-        raise RuntimeError(
-            f"Could not generate a unique key after {max_attempts:,} attempts. "
-            f"Consider increasing 'length' or changing 'key_type'."
-        )
+        raise RuntimeError(f"Could not generate a unique key after {max_attempts:,} attempts. Consider increasing 'length' or changing 'key_type'.")
 
     def reset_unique_keys(self, group: Optional[str] = None) -> None:
         """
@@ -1103,17 +1311,18 @@ class TextDummy:
         first = self.fake.first_name().lower()
         last = self.fake.last_name().lower()
         # Remove accents / non-ASCII for login safety
-        import unicodedata
         first = unicodedata.normalize("NFKD", first).encode("ascii", "ignore").decode()
         last = unicodedata.normalize("NFKD", last).encode("ascii", "ignore").decode()
-        fmt = self._rng.choice([
-            f"{first[0]}{last}",            # jsmith
-            f"{first}.{last}",              # maria.garcia
-            f"{first[0]}{last}{self._rng.randint(1, 99):02d}",  # mgarcia01
-            f"{first}_{last}",              # carlos_lopez
-            f"{first}{last[0]}",            # mariag
-            f"{last}.{first[0]}",           # garcia.m
-        ])
+        fmt = self._rng.choice(
+            [
+                f"{first[0]}{last}",  # jsmith
+                f"{first}.{last}",  # maria.garcia
+                f"{first[0]}{last}{self._rng.randint(1, 99):02d}",  # mgarcia01
+                f"{first}_{last}",  # carlos_lopez
+                f"{first}{last[0]}",  # mariag
+                f"{last}.{first[0]}",  # garcia.m
+            ]
+        )
         return fmt
 
     def password(
@@ -1137,18 +1346,17 @@ class TextDummy:
         The generated password is guaranteed to contain at least one
         character from every enabled set (when *length* permits).
         """
-        import string as _string
         pools: List[str] = []
         required: List[str] = []
         if upper:
-            pools.append(_string.ascii_uppercase)
-            required.append(self._rng.choice(_string.ascii_uppercase))
+            pools.append(string.ascii_uppercase)
+            required.append(self._rng.choice(string.ascii_uppercase))
         if lower:
-            pools.append(_string.ascii_lowercase)
-            required.append(self._rng.choice(_string.ascii_lowercase))
+            pools.append(string.ascii_lowercase)
+            required.append(self._rng.choice(string.ascii_lowercase))
         if digits:
-            pools.append(_string.digits)
-            required.append(self._rng.choice(_string.digits))
+            pools.append(string.digits)
+            required.append(self._rng.choice(string.digits))
         if special:
             sp = "!@#$%^&*()-_=+[]{}|;:,.<>?"
             pools.append(sp)
@@ -1312,9 +1520,7 @@ class TextDummy:
         try:
             return self.fake.license_plate()
         except AttributeError:
-            import string
-            return ''.join(self._rng.choices(string.ascii_uppercase, k=3)) + \
-                   '-' + ''.join(str(self._rng.randint(0, 9)) for _ in range(4))
+            return "".join(self._rng.choices(string.ascii_uppercase, k=3)) + "-" + "".join(str(self._rng.randint(0, 9)) for _ in range(4))
 
     # --- Geolocation ---
 
@@ -1370,15 +1576,43 @@ class TextDummy:
             return self.fake.ecommerce_name()
         except AttributeError:
             adjectives = [
-                "Premium", "Eco", "Smart", "Pro", "Ultra", "Lite",
-                "Classic", "Deluxe", "Essential", "Elite", "Natural",
-                "Organic", "Digital", "Portable", "Compact",
+                "Premium",
+                "Eco",
+                "Smart",
+                "Pro",
+                "Ultra",
+                "Lite",
+                "Classic",
+                "Deluxe",
+                "Essential",
+                "Elite",
+                "Natural",
+                "Organic",
+                "Digital",
+                "Portable",
+                "Compact",
             ]
             nouns = [
-                "Headphones", "Camera", "Laptop", "Watch", "Backpack",
-                "Chair", "Lamp", "Keyboard", "Monitor", "Speaker",
-                "Battery", "Charger", "Tablet", "Printer", "Router",
-                "Sneakers", "Bottle", "Thermos", "Glasses", "Case",
+                "Headphones",
+                "Camera",
+                "Laptop",
+                "Watch",
+                "Backpack",
+                "Chair",
+                "Lamp",
+                "Keyboard",
+                "Monitor",
+                "Speaker",
+                "Battery",
+                "Charger",
+                "Tablet",
+                "Printer",
+                "Router",
+                "Sneakers",
+                "Bottle",
+                "Thermos",
+                "Glasses",
+                "Case",
             ]
             return f"{self._rng.choice(adjectives)} {self._rng.choice(nouns)}"
 
@@ -1388,30 +1622,60 @@ class TextDummy:
             return self.fake.ecommerce_category()
         except AttributeError:
             categories = [
-                "Electronics", "Home & Garden", "Fashion", "Sports", "Food & Beverage",
-                "Health & Beauty", "Toys", "Books", "Automotive",
-                "Garden", "Computers", "Mobile", "Appliances",
-                "Office", "Pets", "Baby", "DIY", "Music",
-                "Video Games", "Stationery",
+                "Electronics",
+                "Home & Garden",
+                "Fashion",
+                "Sports",
+                "Food & Beverage",
+                "Health & Beauty",
+                "Toys",
+                "Books",
+                "Automotive",
+                "Garden",
+                "Computers",
+                "Mobile",
+                "Appliances",
+                "Office",
+                "Pets",
+                "Baby",
+                "DIY",
+                "Music",
+                "Video Games",
+                "Stationery",
             ]
             return self._rng.choice(categories)
 
     def product_material(self) -> str:
         """Generate a fake product material."""
         materials = [
-            "Cotton", "Plastic", "Wood", "Stainless Steel", "Aluminum",
-            "Leather", "Silicone", "Glass", "Ceramic", "Bamboo",
-            "Polyester", "Nylon", "Titanium", "Carbon Fiber", "Linen",
-            "Rubber", "Cork", "Marble", "Granite", "ABS",
+            "Cotton",
+            "Plastic",
+            "Wood",
+            "Stainless Steel",
+            "Aluminum",
+            "Leather",
+            "Silicone",
+            "Glass",
+            "Ceramic",
+            "Bamboo",
+            "Polyester",
+            "Nylon",
+            "Titanium",
+            "Carbon Fiber",
+            "Linen",
+            "Rubber",
+            "Cork",
+            "Marble",
+            "Granite",
+            "ABS",
         ]
         return self._rng.choice(materials)
 
     def product_sku(self) -> str:
         """Generate a fake product SKU (e.g. 'ELEC-A3X9-2847')."""
-        import string
-        prefix = ''.join(self._rng.choices(string.ascii_uppercase, k=4))
-        mid = ''.join(self._rng.choices(string.ascii_uppercase + string.digits, k=4))
-        suffix = ''.join(str(self._rng.randint(0, 9)) for _ in range(4))
+        prefix = "".join(self._rng.choices(string.ascii_uppercase, k=4))
+        mid = "".join(self._rng.choices(string.ascii_uppercase + string.digits, k=4))
+        suffix = "".join(str(self._rng.randint(0, 9)) for _ in range(4))
         return f"{prefix}-{mid}-{suffix}"
 
     def product_review(self) -> Dict[str, Any]:
@@ -1445,43 +1709,69 @@ class TextDummy:
     def department(self) -> str:
         """Generate a fake company department name."""
         departments = [
-            "Sales", "Marketing", "Human Resources", "Finance",
-            "Technology", "Operations", "Legal", "Customer Service",
-            "Logistics", "Procurement", "Quality", "R&D",
-            "Production", "Administration", "Communications",
+            "Sales",
+            "Marketing",
+            "Human Resources",
+            "Finance",
+            "Technology",
+            "Operations",
+            "Legal",
+            "Customer Service",
+            "Logistics",
+            "Procurement",
+            "Quality",
+            "R&D",
+            "Production",
+            "Administration",
+            "Communications",
         ]
         return self._rng.choice(departments)
 
     def payment_method(self) -> str:
         """Generate a fake payment method."""
         methods = [
-            "Credit Card", "Debit Card", "PayPal",
-            "Bank Transfer", "Cash", "Apple Pay",
-            "Google Pay", "Direct Debit", "Cash on Delivery",
-            "Cryptocurrency", "Financing", "Wire Transfer",
+            "Credit Card",
+            "Debit Card",
+            "PayPal",
+            "Bank Transfer",
+            "Cash",
+            "Apple Pay",
+            "Google Pay",
+            "Direct Debit",
+            "Cash on Delivery",
+            "Cryptocurrency",
+            "Financing",
+            "Wire Transfer",
         ]
         return self._rng.choice(methods)
 
     def order_status(self) -> str:
         """Generate a fake order status."""
         statuses = [
-            "Pending", "Confirmed", "Processing", "Shipped",
-            "In Transit", "Delivered", "Returned", "Cancelled",
-            "Refunded", "On Hold",
+            "Pending",
+            "Confirmed",
+            "Processing",
+            "Shipped",
+            "In Transit",
+            "Delivered",
+            "Returned",
+            "Cancelled",
+            "Refunded",
+            "On Hold",
         ]
         return self._rng.choice(statuses)
 
     def tracking_number(self) -> str:
         """Generate a fake shipping tracking number."""
-        import string
-        prefix = ''.join(self._rng.choices(string.ascii_uppercase, k=2))
-        digits = ''.join(str(self._rng.randint(0, 9)) for _ in range(12))
+        prefix = "".join(self._rng.choices(string.ascii_uppercase, k=2))
+        digits = "".join(str(self._rng.randint(0, 9)) for _ in range(12))
         country = self.locale[-2:].upper() if len(self.locale) >= 2 else "XX"
         return f"{prefix}{digits}{country}"
 
     def invoice_number(self) -> str:
         """Generate a fake invoice number (e.g. 'INV-2026-00342')."""
         from datetime import datetime
+
         year = datetime.now().year
         seq = self._rng.randint(1, 99999)
         return f"INV-{year}-{seq:05d}"
@@ -1574,9 +1864,7 @@ class TextDummy:
             print(gen.run_custom("ticket"))        # "TK-4821"
         """
         if not (isinstance(source, list) or callable(source)):
-            raise TypeError(
-                f"source must be a list or callable, got {type(source).__name__}"
-            )
+            raise TypeError(f"source must be a list or callable, got {type(source).__name__}")
         self._custom_functions[name] = source
 
     def unregister_custom(self, name: str) -> None:
@@ -1597,10 +1885,7 @@ class TextDummy:
             ValueError: If *name* is not registered.
         """
         if name not in self._custom_functions:
-            raise ValueError(
-                f"Custom generator '{name}' not registered. "
-                f"Registered: {list(self._custom_functions.keys())}"
-            )
+            raise ValueError(f"Custom generator '{name}' not registered. Registered: {list(self._custom_functions.keys())}")
         source = self._custom_functions[name]
         if callable(source):
             return source()
@@ -1712,16 +1997,10 @@ class TextDummy:
         try:
             from pydantic import BaseModel
         except ImportError:
-            raise ImportError(
-                "pydantic is required for fill_model(). "
-                "Install it with: pip install pydantic"
-            )
+            raise ImportError("pydantic is required for fill_model(). Install it with: pip install pydantic")
 
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
-            raise TypeError(
-                f"model_class must be a Pydantic BaseModel subclass, "
-                f"got {type(model_class)}"
-            )
+            raise TypeError(f"model_class must be a Pydantic BaseModel subclass, got {type(model_class)}")
 
         overrides = overrides or {}
         field_values = {}
@@ -1743,13 +2022,9 @@ class TextDummy:
                         dummy_marker = meta
                         break
                 if dummy_marker:
-                    field_values[field_name] = self._call_generator(
-                        dummy_marker.generator, **dummy_marker.kwargs
-                    )
+                    field_values[field_name] = self._call_generator(dummy_marker.generator, **dummy_marker.kwargs)
                 else:
-                    field_values[field_name] = self._resolve_field_value(
-                        field_name, field_info.annotation
-                    )
+                    field_values[field_name] = self._resolve_field_value(field_name, field_info.annotation)
 
         return model_class(**field_values)
 
@@ -1864,14 +2139,10 @@ class TextDummy:
         method = getattr(self, name, None)
         if method and callable(method):
             return method(**kwargs) if kwargs else method()
-        raise ValueError(
-            f"Unknown generator '{name}'. Use a TextDummy method name "
-            f"or a registered custom generator."
-        )
+        raise ValueError(f"Unknown generator '{name}'. Use a TextDummy method name or a registered custom generator.")
 
     def _resolve_field_value(self, field_name: str, annotation: Any) -> Any:
         """Resolve a fake value for a model field based on its name and type."""
-        import datetime as _dt
         import enum as _enum
         import typing as _typing
         from typing import get_origin, get_args
@@ -1880,7 +2151,7 @@ class TextDummy:
             return None
 
         # Check for DummyField in Annotated metadata (non-Pydantic usage)
-        if hasattr(annotation, '__metadata__'):
+        if hasattr(annotation, "__metadata__"):
             for meta in annotation.__metadata__:
                 if isinstance(meta, DummyField):
                     return self._call_generator(meta.generator, **meta.kwargs)
@@ -1901,6 +2172,7 @@ class TextDummy:
         # Python 3.10+ union syntax (X | Y)
         try:
             import types as _types
+
             if isinstance(annotation, _types.UnionType):
                 non_none = [a for a in get_args(annotation) if a is not type(None)]
                 if non_none:
@@ -1928,6 +2200,7 @@ class TextDummy:
         # Nested Pydantic model
         try:
             from pydantic import BaseModel as _BaseModel
+
             if isinstance(annotation, type) and issubclass(annotation, _BaseModel):
                 return self.fill_model(annotation)
         except (ImportError, TypeError):
@@ -1963,13 +2236,14 @@ class TextDummy:
             return round(self._rng.uniform(0.0, 1000.0), 2)
         if annotation is bool:
             return self._rng.choice([True, False])
-        if annotation is _dt.date:
+        if annotation is datetime.date:
             return self.fake.date_object()
-        if annotation is _dt.datetime:
+        if annotation is datetime.datetime:
             return self.fake.date_time()
 
         try:
             from decimal import Decimal
+
             if annotation is Decimal:
                 return Decimal(str(round(self._rng.uniform(0.0, 1000.0), 2)))
         except ImportError:
@@ -2012,11 +2286,7 @@ class TextDummy:
 
     # --- Batch generation ---
 
-    def generate_batch(
-        self,
-        data_type: str,
-        count: int = 10
-    ) -> List[str]:
+    def generate_batch(self, data_type: str, count: int = 10) -> List[str]:
         """
         Generate multiple values of the same type.
 
@@ -2127,8 +2397,7 @@ class TextDummy:
 
         if data_type not in generators:
             raise ValueError(
-                f"Unsupported data type: {data_type}. "
-                f"Valid options: {sorted(list(generators.keys()) + list(self._custom_functions.keys()))}"
+                f"Unsupported data type: {data_type}. Valid options: {sorted(list(generators.keys()) + list(self._custom_functions.keys()))}"
             )
 
         return [generators[data_type]() for _ in range(count)]
@@ -2176,6 +2445,7 @@ def get_generator(locale: str = "es_ES", seed: Optional[int] = None) -> TextDumm
 # ---------------------------------------------------------------------------
 # Convenience functions
 # ---------------------------------------------------------------------------
+
 
 def fake_name(locale: str = "es_ES") -> str:
     """Generate a fake full name."""
@@ -2383,8 +2653,13 @@ def fake_random_number(
 ) -> str:
     """Generate a random locale-formatted number."""
     return get_generator(locale).random_number(
-        number_type=number_type, digits=digits, decimals=decimals,
-        min_val=min_val, max_val=max_val, mask=mask, currency=currency,
+        number_type=number_type,
+        digits=digits,
+        decimals=decimals,
+        min_val=min_val,
+        max_val=max_val,
+        mask=mask,
+        currency=currency,
     )
 
 
@@ -2397,7 +2672,10 @@ def fake_random_date(
 ) -> str:
     """Generate a random locale-formatted date."""
     return get_generator(locale).random_date(
-        start=start, end=end, pattern=pattern, mask=mask,
+        start=start,
+        end=end,
+        pattern=pattern,
+        mask=mask,
     )
 
 
@@ -2414,9 +2692,14 @@ def fake_unique_key(
 ) -> str:
     """Generate a guaranteed-unique random key."""
     return get_generator(locale).unique_key(
-        length=length, key_type=key_type, prefix=prefix, suffix=suffix,
-        separator=separator, segment_length=segment_length,
-        uppercase=uppercase, group=group,
+        length=length,
+        key_type=key_type,
+        prefix=prefix,
+        suffix=suffix,
+        separator=separator,
+        segment_length=segment_length,
+        uppercase=uppercase,
+        group=group,
     )
 
 
@@ -2431,8 +2714,12 @@ def fake_autoincrement(
 ) -> str:
     """Generate the next value in an auto-incrementing sequence."""
     return get_generator(locale).autoincrement(
-        start=start, step=step, prefix=prefix, suffix=suffix,
-        zfill=zfill, group=group,
+        start=start,
+        step=step,
+        prefix=prefix,
+        suffix=suffix,
+        zfill=zfill,
+        group=group,
     )
 
 
@@ -2446,8 +2733,11 @@ def fake_password(
 ) -> str:
     """Generate a fake password."""
     return get_generator(locale).password(
-        length=length, upper=upper, lower=lower,
-        digits=digits, special=special,
+        length=length,
+        upper=upper,
+        lower=lower,
+        digits=digits,
+        special=special,
     )
 
 

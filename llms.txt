@@ -6,7 +6,9 @@
 
 ShadeTripTxt targets enterprise data-quality pipelines — identity resolution, deduplication, normalization, and privacy compliance. It is a pure Python library (no web framework) designed to be imported into ETL processes, data platforms, and backend services. Key goals:
 
-- **Multi-algorithm fuzzy matching** for name and text comparison (Levenshtein, Jaro-Winkler, Metaphone, MRA, LCS, Sørensen-Dice).
+- **Multi-algorithm fuzzy matching** for name and text comparison (Levenshtein, Jaro-Winkler, Soundex, Metaphone, Double Metaphone, MRA, LCS, Sørensen-Dice).
+- **Checksum validation** for IBAN (Mod-97), ISBN-10/13, EAN-13, and Luhn algorithm.
+- **Readability metrics**: Flesch Reading Ease, Flesch-Kincaid Grade Level, syllable counting.
 - **Locale-aware processing** across 12 locales (es_ES, es_MX, es_AR, es_CO, es_CL, en_US, en_GB, pt_BR, pt_PT, fr_FR, de_DE, it_IT).
 - **PII detection and anonymization** with 7 strategies (redact, mask, replace, hash, generalize, pseudonymize, suppress).
 - **Fake data generation** for 60+ data types with Pydantic model auto-filling.
@@ -37,24 +39,38 @@ ShadeTripTxt/
 │   │   ├── text_normalizer.py    # normalize_text(), prepare_for_comparison()
 │   │   ├── names_parser.py       # Person & company name parsing
 │   │   ├── idcard_parser.py       # Spanish/European NIF validation (28 countries)
-│   │   ├── language_normalizer.py # LanguageNormalizer — abbreviation expansion
+│   │   ├── language_normalizer.py # LanguageNormalizer, detect_language — abbreviation expansion + language detection
 │   │   ├── encoding_fixer.py     # EncodingFixer — universal mojibake repair
 │   │   ├── spanish_parser.py     # Spanish phonetic reduction
 │   │   ├── english_parser.py     # English phonetic reduction
 │   │   ├── portuguese_parser.py  # Portuguese phonetic reduction
 │   │   ├── french_parser.py      # French phonetic reduction
 │   │   ├── german_parser.py      # German phonetic reduction
-│   │   └── italian_parser.py     # Italian phonetic reduction
+│   │   ├── italian_parser.py     # Italian phonetic reduction
+│   │   └── text_readability.py   # Flesch Reading Ease, Flesch-Kincaid, Gunning Fog, Coleman-Liau, ARI, text complexity score
 │   ├── text_dummy/               # Fake data generation
 │   │   └── text_dummy.py         # TextDummy, DummyField, LocaleProfile
 │   ├── text_anonymizer/          # PII detection & anonymization
-│   │   └── text_anonymizer.py    # TextAnonymizer, PiiType, Strategy enums
+│   │   └── text_anonymizer.py    # TextAnonymizer, PiiType, Strategy enums, obfuscate_email
 │   └── utils/                    # Shared utilities
-│       ├── string_ops.py         # Low-level text utilities
-│       └── string_similarity.py  # Similarity algorithms + WordSimilarity class
+│       ├── string_ops.py         # Low-level text utilities + phone normalisation
+│       ├── string_similarity.py  # Similarity algorithms + WordSimilarity class + Hamming distance
+│       └── string_validation.py  # Checksum validation (Luhn, IBAN, ISBN, EAN, VAT, SWIFT/BIC) + data type inference + phone format + email domain type
+├── tests/                        # Test suite
+│   ├── __init__.py
+│   ├── test_text_anonymizer.py
+│   ├── test_text_readability.py
+│   ├── test_string_ops.py
+│   ├── test_string_similarity_phonetic.py
+│   ├── test_string_validation.py
+│   └── test_language_normalizer.py
+├── .pre-commit-config.yaml       # Ruff lint/format + pre-commit hooks
+├── CHANGELOG.md                  # Keep a Changelog format
+├── LICENSE                       # MIT
+├── llms.txt                      # AI agent context file
+├── Makefile                      # install, test, lint, format, build targets
 ├── pyproject.toml                # Build config & dependencies
-├── README.md                     # Documentation
-└── LICENSE                       # MIT
+└── README.md                     # Project documentation
 ```
 
 ## Configuration
@@ -144,6 +160,92 @@ from shadetriptxt.text_parser.text_normalizer import normalize_text
 from shadetriptxt.text_parser.idcard_parser import nif_parse, european_nif
 from shadetriptxt.text_parser.encoding_fixer import EncodingFixer
 from shadetriptxt.text_parser.language_normalizer import LanguageNormalizer
+from shadetriptxt.text_parser.language_normalizer import detect_language
+from shadetriptxt.text_parser.text_readability import count_syllables, flesch_reading_ease, flesch_kincaid_grade
+from shadetriptxt.text_parser.text_readability import gunning_fog_index, coleman_liau_index, automated_readability_index
+from shadetriptxt.text_parser.text_readability import text_complexity_score
+from shadetriptxt.text_parser.text_readability import is_gibberish, is_placeholder_text, text_density_score
+```
+
+### utils — Phonetic Encoding & Validation
+
+```python
+from shadetriptxt.utils.string_similarity import soundex, metaphone, double_metaphone
+
+# Phonetic encodings
+soundex("Robert")            # "R163"
+soundex("Rupert")            # "R163"
+metaphone("Smith")           # "SM0"
+metaphone("Schmidt")         # "SXMTT"
+p, alt = double_metaphone("Schmidt")  # ("XMT", "SMT")
+
+# Via WordSimilarity
+from shadetriptxt.utils.string_similarity import calculate_similarity
+calculate_similarity("Robert", "Rupert", algorithm="soundex")
+calculate_similarity("Smith", "Schmidt", algorithm="double_metaphone")
+
+# Hamming distance
+from shadetriptxt.utils.string_similarity import string_distance_hamming
+string_distance_hamming("karolin", "kathrin")    # 3
+
+# Checksum validation
+from shadetriptxt.utils.string_validation import (
+    luhn_checksum, is_valid_luhn, ean13_check_digit,
+    is_valid_iban, is_valid_isbn,
+    is_valid_credit_card, is_valid_vat, is_valid_ean
+)
+
+luhn_checksum("7992739871")                      # 3
+is_valid_luhn("79927398713")                     # True
+ean13_check_digit("590123412345")                # "7"
+is_valid_iban("GB29 NWBK 6016 1331 9268 19")    # True
+is_valid_isbn("978-0-306-40615-7")               # True
+is_valid_isbn("0-306-40615-2")                   # True (ISBN-10)
+is_valid_credit_card("4111111111111111")           # {"valid": True, "network": "Visa"}
+is_valid_vat("ESB12345678")                        # True (Spanish VAT)
+is_valid_ean("5901234123457")                      # True (EAN-13)
+
+# SWIFT/BIC validation
+from shadetriptxt.utils.string_validation import is_valid_swift_bic, data_type_inference
+is_valid_swift_bic("DEUTDEFF")                       # True
+data_type_inference("42")                             # 'integer'
+data_type_inference("2024-01-15")                     # 'date'
+
+# Phone validation & normalisation
+from shadetriptxt.utils.string_validation import is_valid_phone_format, email_domain_type
+from shadetriptxt.utils.string_validation import has_mixed_case_anomaly, contains_repeated_words
+is_valid_phone_format("+34612345678")                  # True
+is_valid_phone_format("202-555-0100", "US")            # True
+email_domain_type("user@gmail.com")                     # 'free'
+email_domain_type("user@company.com")                   # 'corporate'
+
+from shadetriptxt.utils.string_ops import normalize_phone
+normalize_phone("612 345 678")                          # '+34612345678'
+
+# Quality-data checks
+has_mixed_case_anomaly("hELLo WoRLd")                    # True
+contains_repeated_words("the the cat")                    # True
+
+# Homoglyph & mixed-script detection (anti-spoofing)
+from shadetriptxt.utils.string_validation import detect_mixed_scripts, homoglyph_risk_score
+detect_mixed_scripts("T\u0435st")                           # {'LATIN': {'T','s','t'}, 'CYRILLIC': {'е'}}
+homoglyph_risk_score("\u0430\u0435\u043e")                              # 1.0  (all confusable)
+is_placeholder_text("lorem ipsum dolor")                  # True
+is_gibberish("xkjf8 wqp3z mbn!v")                        # True
+text_density_score("Hello World")                         # ~0.9091
+
+# Readability metrics
+from shadetriptxt.text_parser.text_readability import (
+    count_syllables, flesch_reading_ease, flesch_kincaid_grade,
+    gunning_fog_index, coleman_liau_index, automated_readability_index
+)
+
+count_syllables("beautiful")                     # 3
+flesch_reading_ease("The cat sat on the mat.")   # ~116.1
+flesch_kincaid_grade("The cat sat on the mat.")  # ~-1.1
+gunning_fog_index("The cat sat on the mat.")      # ~1.6
+coleman_liau_index("The cat sat on the mat.")     # ~3.7
+automated_readability_index("The cat sat on the mat.")  # ~-5.4
 ```
 
 ### text_dummy — Fake Data Generation
@@ -187,6 +289,7 @@ columns = gen.to_columns(Employee, count=1000)    # Dict[str, List] (DataFrame-r
 ```python
 from shadetriptxt.text_anonymizer import TextAnonymizer, Strategy, PiiType
 from shadetriptxt.text_anonymizer import anonymize_text, detect_pii, anonymize_dict
+from shadetriptxt.text_anonymizer.text_anonymizer import obfuscate_email
 
 # Text anonymization
 anon = TextAnonymizer(locale="es_ES", strategy="pseudonymize", seed=42)
@@ -215,25 +318,38 @@ df_anon = anon.anonymize_dataframe(df, identifiers=["name"], quasi_identifiers=[
 
 # Privacy metrics
 report = anon.measure_privacy(df, quasi_identifiers=["age"], sensitive_attrs=["salary"])
+
+# Standalone email masking
+obfuscate_email("john.doe@example.com")  # 'j***@example.com'
+
+# Language detection
+detect_language("The quick brown fox jumps")  # 'en'
+detect_language("El rápido zorro marrón")     # 'es'
 ```
 
 ## Development Workflow
 
 ```bash
-# Install (editable mode)
-pip install -e .
+# Install with uv
+uv sync
 
 # Install with all optional dependencies
-pip install -e ".[full,anonymizer]"
+uv sync --extra anonymizer
 
 # Run tests
-python test_anonymizer.py
-# or
-pytest
+make test          # or: uv run pytest -v
+
+# Lint & format
+make lint          # ruff check .
+make format        # ruff format .
+make check         # lint + test
 
 # Build package
-pip install hatchling
-python -m build
+make build         # or: uv build
+
+# Pre-commit hooks
+pre-commit install
+pre-commit run --all-files
 ```
 
 ## Technical Rules & Conventions
@@ -259,9 +375,14 @@ python -m build
 | `shadetriptxt/text_parser/text_normalizer.py` | `normalize_text()` — configurable text preprocessing pipeline |
 | `shadetriptxt/text_parser/idcard_parser.py` | Spanish NIF (DNI/NIE/CIF) + European NIF validation (28 countries) |
 | `shadetriptxt/text_parser/encoding_fixer.py` | `EncodingFixer` — universal mojibake detection & repair |
-| `shadetriptxt/text_parser/language_normalizer.py` | `LanguageNormalizer` — abbreviation expansion for 6 languages |
+| `shadetriptxt/text_parser/language_normalizer.py` | `LanguageNormalizer` — abbreviation expansion for 6 languages + `detect_language` stopword heuristic |
 | `shadetriptxt/text_dummy/text_dummy.py` | `TextDummy` — fake data generator with Pydantic model filling |
-| `shadetriptxt/text_anonymizer/text_anonymizer.py` | `TextAnonymizer` — PII detection (regex/spaCy/NLTK) + 7 anonymization strategies |
+| `shadetriptxt/text_anonymizer/text_anonymizer.py` | `TextAnonymizer` — PII detection (regex/spaCy/NLTK) + 7 anonymization strategies + `obfuscate_email` |
 | `shadetriptxt/text_matcher/algorithm_selector.py` | `AlgorithmSelector` — automatic algorithm selection by use case |
-| `shadetriptxt/utils/string_similarity.py` | Similarity algorithms (Levenshtein, Jaro-Winkler, etc.) + `WordSimilarity` class |
+| `shadetriptxt/utils/string_similarity.py` | Similarity algorithms (Levenshtein, Jaro-Winkler, Soundex, Metaphone, Double Metaphone, Hamming, etc.) + `WordSimilarity` class |
+| `shadetriptxt/utils/string_validation.py` | Checksum validation (Luhn, IBAN Mod-97, ISBN-10/13, EAN-13, credit card, VAT, EAN-8/13, SWIFT/BIC) + data type inference + phone format + email domain type |
+| `shadetriptxt/utils/string_ops.py` | Low-level text utilities + `normalize_phone` E.164 normalisation |
+| `shadetriptxt/text_parser/text_readability.py` | Readability metrics (Flesch Reading Ease, Flesch-Kincaid Grade Level, Gunning Fog, Coleman-Liau, ARI, text complexity score, gibberish detection) |
 | `pyproject.toml` | Build system, dependencies, optional extras |
+| `CHANGELOG.md` | Release history — Keep a Changelog format |
+| `Makefile` | Dev workflow targets: install, test, lint, format, build, clean |

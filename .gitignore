@@ -127,6 +127,9 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Copilot task files
+.copilot/
+
 # Environments
 .env
 .venv
@@ -216,25 +219,17 @@ data/
 
 # Documentation folder
 doc/
-docs/
 
 # Specific folders
 .vscode/
-tests/
 
 # Specific files
-pyproject.toml
 how_to_use_it.py
 
 
-# Excluir directorios de proyecto, tests y documentación
-.github/
+# Excluir directorios de proyecto
 .vscode/
 project_structure.txt
-pyproject.toml
-tests/
-docs/
-examples/
 notebooks/
 ToDo/
 

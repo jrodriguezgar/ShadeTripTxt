@@ -11,17 +11,15 @@ es_CO, es_CL, en_US, en_GB, pt_BR, pt_PT, fr_FR, de_DE, it_IT.
 
 import re
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Any, Tuple
+from typing import Callable, Dict, List, Optional, Any
 
-from .text_extract import TextExtractor, get_string_between
+from shadetriptxt.utils._locale import BaseLocaleProfile
+
+from .text_extract import TextExtractor
 from .text_normalizer import (
-    normalize_text,
     normalize_whitespace,
     remove_punctuation_marks,
-    remove_special_characters,
     remove_parentheses_and_content,
-    strip_quotes,
-    prepare_for_comparison,
     mask_text,
 )
 from .language_normalizer import LanguageNormalizer
@@ -29,22 +27,8 @@ from .idcard_parser import (
     nif_parse,
     nif_padding,
     nif_letter,
-    is_valid_dni,
-    is_valid_nie,
-    is_valid_cif,
     validate_spanish_nif,
-    european_nif,
     validate_id_document,
-    is_valid_ssn,
-    is_valid_cpf,
-    is_valid_cnpj,
-    is_valid_bsn,
-    is_valid_codice_fiscale,
-    is_valid_curp,
-    is_valid_rut,
-    is_valid_cuil,
-    is_valid_nino,
-    is_valid_portuguese_nif,
 )
 from .spanish_parser import (
     remove_spanish_articles,
@@ -89,18 +73,17 @@ from .encoding_fixer import EncodingFixer
 # Locale profiles: metadata and capabilities per country/language
 # ---------------------------------------------------------------------------
 
+
 @dataclass(frozen=True)
-class ParserLocaleProfile:
+class ParserLocaleProfile(BaseLocaleProfile):
     """Profile for a supported locale with parsing-specific metadata."""
-    code: str
-    country: str
-    language: str           # 'es', 'en', 'pt', 'fr', 'de', 'it'
+
     postal_code_digits: int  # 4 or 5
     phone_prefix: str
     phone_min_digits: int
     id_document_name: str
-    id_regex: str            # Regex pattern for the primary ID document
-    name_order: str          # 'first_last' or 'last_first'
+    id_regex: str  # Regex pattern for the primary ID document
+    name_order: str  # 'first_last' or 'last_first'
     has_legal_forms: bool
     date_format: str
     decimal_separator: str
@@ -111,98 +94,194 @@ class ParserLocaleProfile:
 LOCALE_PROFILES: Dict[str, ParserLocaleProfile] = {
     # --- Spanish ---
     "es_ES": ParserLocaleProfile(
-        code="es_ES", country="Spain", language="es",
-        postal_code_digits=5, phone_prefix="+34", phone_min_digits=9,
-        id_document_name="DNI/NIF", id_regex=r'\b\d{8}[A-Z]\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
-        extra_id_documents={"NIE": r'\b[XYZ]\d{7}[A-Z]\b', "CIF": r'\b[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]\b'},
+        code="es_ES",
+        country="Spain",
+        language="es",
+        postal_code_digits=5,
+        phone_prefix="+34",
+        phone_min_digits=9,
+        id_document_name="DNI/NIF",
+        id_regex=r"\b\d{8}[A-Z]\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
+        extra_id_documents={"NIE": r"\b[XYZ]\d{7}[A-Z]\b", "CIF": r"\b[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]\b"},
     ),
     "es_MX": ParserLocaleProfile(
-        code="es_MX", country="Mexico", language="es",
-        postal_code_digits=5, phone_prefix="+52", phone_min_digits=10,
-        id_document_name="CURP", id_regex=r'\b[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=".", thousands_separator=",",
-        extra_id_documents={"RFC": r'\b[A-Z]{3,4}\d{6}[A-Z0-9]{3}\b'},
+        code="es_MX",
+        country="Mexico",
+        language="es",
+        postal_code_digits=5,
+        phone_prefix="+52",
+        phone_min_digits=10,
+        id_document_name="CURP",
+        id_regex=r"\b[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=".",
+        thousands_separator=",",
+        extra_id_documents={"RFC": r"\b[A-Z]{3,4}\d{6}[A-Z0-9]{3}\b"},
     ),
     "es_AR": ParserLocaleProfile(
-        code="es_AR", country="Argentina", language="es",
-        postal_code_digits=4, phone_prefix="+54", phone_min_digits=10,
-        id_document_name="DNI", id_regex=r'\b\d{7,8}\b',
-        name_order="last_first", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
-        extra_id_documents={"CUIL": r'\b\d{2}-\d{7,8}-\d\b'},
+        code="es_AR",
+        country="Argentina",
+        language="es",
+        postal_code_digits=4,
+        phone_prefix="+54",
+        phone_min_digits=10,
+        id_document_name="DNI",
+        id_regex=r"\b\d{7,8}\b",
+        name_order="last_first",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
+        extra_id_documents={"CUIL": r"\b\d{2}-\d{7,8}-\d\b"},
     ),
     "es_CO": ParserLocaleProfile(
-        code="es_CO", country="Colombia", language="es",
-        postal_code_digits=6, phone_prefix="+57", phone_min_digits=10,
-        id_document_name="Cédula", id_regex=r'\b\d{6,10}\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
+        code="es_CO",
+        country="Colombia",
+        language="es",
+        postal_code_digits=6,
+        phone_prefix="+57",
+        phone_min_digits=10,
+        id_document_name="Cédula",
+        id_regex=r"\b\d{6,10}\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
     ),
     "es_CL": ParserLocaleProfile(
-        code="es_CL", country="Chile", language="es",
-        postal_code_digits=7, phone_prefix="+56", phone_min_digits=9,
-        id_document_name="RUT", id_regex=r'\b\d{1,2}\.\d{3}\.\d{3}-[0-9K]\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
+        code="es_CL",
+        country="Chile",
+        language="es",
+        postal_code_digits=7,
+        phone_prefix="+56",
+        phone_min_digits=9,
+        id_document_name="RUT",
+        id_regex=r"\b\d{1,2}\.\d{3}\.\d{3}-[0-9K]\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
     ),
     # --- English ---
     "en_US": ParserLocaleProfile(
-        code="en_US", country="United States", language="en",
-        postal_code_digits=5, phone_prefix="+1", phone_min_digits=10,
-        id_document_name="SSN", id_regex=r'\b\d{3}-\d{2}-\d{4}\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%m/%d/%Y", decimal_separator=".", thousands_separator=",",
-        extra_id_documents={"EIN": r'\b\d{2}-\d{7}\b'},
+        code="en_US",
+        country="United States",
+        language="en",
+        postal_code_digits=5,
+        phone_prefix="+1",
+        phone_min_digits=10,
+        id_document_name="SSN",
+        id_regex=r"\b\d{3}-\d{2}-\d{4}\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%m/%d/%Y",
+        decimal_separator=".",
+        thousands_separator=",",
+        extra_id_documents={"EIN": r"\b\d{2}-\d{7}\b"},
     ),
     "en_GB": ParserLocaleProfile(
-        code="en_GB", country="United Kingdom", language="en",
-        postal_code_digits=0, phone_prefix="+44", phone_min_digits=10,
-        id_document_name="NINO", id_regex=r'\b[A-Z]{2}\d{6}[A-D]\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=".", thousands_separator=",",
+        code="en_GB",
+        country="United Kingdom",
+        language="en",
+        postal_code_digits=0,
+        phone_prefix="+44",
+        phone_min_digits=10,
+        id_document_name="NINO",
+        id_regex=r"\b[A-Z]{2}\d{6}[A-D]\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=".",
+        thousands_separator=",",
     ),
     # --- Portuguese ---
     "pt_BR": ParserLocaleProfile(
-        code="pt_BR", country="Brazil", language="pt",
-        postal_code_digits=8, phone_prefix="+55", phone_min_digits=10,
-        id_document_name="CPF", id_regex=r'\b\d{3}\.\d{3}\.\d{3}-\d{2}\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
-        extra_id_documents={"CNPJ": r'\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b'},
+        code="pt_BR",
+        country="Brazil",
+        language="pt",
+        postal_code_digits=8,
+        phone_prefix="+55",
+        phone_min_digits=10,
+        id_document_name="CPF",
+        id_regex=r"\b\d{3}\.\d{3}\.\d{3}-\d{2}\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
+        extra_id_documents={"CNPJ": r"\b\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}\b"},
     ),
     "pt_PT": ParserLocaleProfile(
-        code="pt_PT", country="Portugal", language="pt",
-        postal_code_digits=4, phone_prefix="+351", phone_min_digits=9,
-        id_document_name="NIF", id_regex=r'\b\d{9}\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
+        code="pt_PT",
+        country="Portugal",
+        language="pt",
+        postal_code_digits=4,
+        phone_prefix="+351",
+        phone_min_digits=9,
+        id_document_name="NIF",
+        id_regex=r"\b\d{9}\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
     ),
     # --- French ---
     "fr_FR": ParserLocaleProfile(
-        code="fr_FR", country="France", language="fr",
-        postal_code_digits=5, phone_prefix="+33", phone_min_digits=10,
-        id_document_name="INSEE/NIR", id_regex=r'\b[12]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\s?\d{3}\s?\d{2}\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=" ",
+        code="fr_FR",
+        country="France",
+        language="fr",
+        postal_code_digits=5,
+        phone_prefix="+33",
+        phone_min_digits=10,
+        id_document_name="INSEE/NIR",
+        id_regex=r"\b[12]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\s?\d{3}\s?\d{2}\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=" ",
     ),
     # --- German ---
     "de_DE": ParserLocaleProfile(
-        code="de_DE", country="Germany", language="de",
-        postal_code_digits=5, phone_prefix="+49", phone_min_digits=10,
-        id_document_name="Personalausweis", id_regex=r'\b[A-Z0-9]{10}\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d.%m.%Y", decimal_separator=",", thousands_separator=".",
+        code="de_DE",
+        country="Germany",
+        language="de",
+        postal_code_digits=5,
+        phone_prefix="+49",
+        phone_min_digits=10,
+        id_document_name="Personalausweis",
+        id_regex=r"\b[A-Z0-9]{10}\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d.%m.%Y",
+        decimal_separator=",",
+        thousands_separator=".",
     ),
     # --- Italian ---
     "it_IT": ParserLocaleProfile(
-        code="it_IT", country="Italy", language="it",
-        postal_code_digits=5, phone_prefix="+39", phone_min_digits=9,
-        id_document_name="Codice Fiscale", id_regex=r'\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b',
-        name_order="first_last", has_legal_forms=True,
-        date_format="%d/%m/%Y", decimal_separator=",", thousands_separator=".",
+        code="it_IT",
+        country="Italy",
+        language="it",
+        postal_code_digits=5,
+        phone_prefix="+39",
+        phone_min_digits=9,
+        id_document_name="Codice Fiscale",
+        id_regex=r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b",
+        name_order="first_last",
+        has_legal_forms=True,
+        date_format="%d/%m/%Y",
+        decimal_separator=",",
+        thousands_separator=".",
     ),
 }
 
@@ -210,6 +289,7 @@ LOCALE_PROFILES: Dict[str, ParserLocaleProfile] = {
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class TextParser:
     """
@@ -336,14 +416,7 @@ class TextParser:
 
         return result
 
-    def mask(
-        self,
-        text: str,
-        keep_first: int = 1,
-        keep_last: int = 1,
-        mask_char: str = "*",
-        keep_chars: Optional[str] = None
-    ) -> str:
+    def mask(self, text: str, keep_first: int = 1, keep_last: int = 1, mask_char: str = "*", keep_chars: Optional[str] = None) -> str:
         """
         Mask sensitive text while keeping parts visible.
 
@@ -361,13 +434,7 @@ class TextParser:
             parser.mask("12345678Z", keep_first=2, keep_last=1)
             # "12******Z"
         """
-        return mask_text(
-            text,
-            keep_first=keep_first,
-            keep_last=keep_last,
-            mask_char=mask_char,
-            keep_chars=keep_chars
-        )
+        return mask_text(text, keep_first=keep_first, keep_last=keep_last, mask_char=mask_char, keep_chars=keep_chars)
 
     def prepare_for_comparison(self, text: str, aggressive: bool = False) -> str:
         """
@@ -421,12 +488,12 @@ class TextParser:
             # "John Hill"
         """
         _article_removers = {
-            'es': remove_spanish_articles,
-            'en': remove_english_articles,
-            'pt': remove_portuguese_articles,
-            'fr': remove_french_articles,
-            'de': remove_german_articles,
-            'it': remove_italian_articles,
+            "es": remove_spanish_articles,
+            "en": remove_english_articles,
+            "pt": remove_portuguese_articles,
+            "fr": remove_french_articles,
+            "de": remove_german_articles,
+            "it": remove_italian_articles,
         }
         remover = _article_removers.get(self._language, remove_english_articles)
         return remover(text)
@@ -435,7 +502,7 @@ class TextParser:
     # Encoding / mojibake fix (locale-aware)
     # ------------------------------------------------------------------
 
-    def fix_encoding(self, text: str, add_charset: str = '') -> Optional[str]:
+    def fix_encoding(self, text: str, add_charset: str = "") -> Optional[str]:
         """
         Fix mojibake and encoding issues for the locale's language.
 
@@ -457,12 +524,12 @@ class TextParser:
             parser.fix_encoding("Ã¡rbol")  # "árbol"
         """
         _encoding_fixers = {
-            'es': fix_spanish_conversion_fails,
-            'en': fix_english_conversion_fails,
-            'pt': fix_portuguese_conversion_fails,
-            'fr': fix_french_conversion_fails,
-            'de': fix_german_conversion_fails,
-            'it': fix_italian_conversion_fails,
+            "es": fix_spanish_conversion_fails,
+            "en": fix_english_conversion_fails,
+            "pt": fix_portuguese_conversion_fails,
+            "fr": fix_french_conversion_fails,
+            "de": fix_german_conversion_fails,
+            "it": fix_italian_conversion_fails,
         }
         fixer = _encoding_fixers.get(self._language, fix_english_conversion_fails)
         return fixer(text, add_charset)
@@ -546,12 +613,12 @@ class TextParser:
             # "NIGT"
         """
         _phonetic_reducers = {
-            'es': reduce_letters_spanish,
-            'en': reduce_letters_english,
-            'pt': reduce_letters_portuguese,
-            'fr': reduce_letters_french,
-            'de': reduce_letters_german,
-            'it': reduce_letters_italian,
+            "es": reduce_letters_spanish,
+            "en": reduce_letters_english,
+            "pt": reduce_letters_portuguese,
+            "fr": reduce_letters_french,
+            "de": reduce_letters_german,
+            "it": reduce_letters_italian,
         }
         reducer = _phonetic_reducers.get(self._language, reduce_letters_english)
         return reducer(text, strength)
@@ -578,12 +645,12 @@ class TextParser:
             # "JOSEPH HILL"
         """
         _raw_string_funcs = {
-            'es': raw_string_spanish,
-            'en': raw_string_english,
-            'pt': raw_string_portuguese,
-            'fr': raw_string_french,
-            'de': raw_string_german,
-            'it': raw_string_italian,
+            "es": raw_string_spanish,
+            "en": raw_string_english,
+            "pt": raw_string_portuguese,
+            "fr": raw_string_french,
+            "de": raw_string_german,
+            "it": raw_string_italian,
         }
         func = _raw_string_funcs.get(self._language, raw_string_english)
         return func(text, accuracy)
@@ -642,7 +709,7 @@ class TextParser:
             return self._extractor.extract_postal_codes(text)
 
         digits = self.profile.postal_code_digits
-        locale_pattern = re.compile(r'\b\d{' + str(digits) + r'}\b')
+        locale_pattern = re.compile(r"\b\d{" + str(digits) + r"}\b")
         codes = locale_pattern.findall(str(text))
         return codes if codes else None
 
@@ -775,10 +842,10 @@ class TextParser:
             return None
 
         # Determine country code from locale (e.g. "es_ES" → "ES")
-        country_code = self.profile.code.split('_')[1] if '_' in self.profile.code else self.profile.code
+        country_code = self.profile.code.split("_")[1] if "_" in self.profile.code else self.profile.code
 
         # Spanish locales (es_ES): full NIF validation with doc_type support
-        if self.profile.code == 'es_ES':
+        if self.profile.code == "es_ES":
             if doc_type:
                 try:
                     if validate_spanish_nif(doc_type.upper(), id_string):
@@ -849,6 +916,7 @@ class TextParser:
             # "José García López"
         """
         from .names_parser import arrange_fullname
+
         return arrange_fullname(name)
 
     def parse_company(self, company_name: str, legal_forms: Optional[list] = None) -> Optional[tuple]:
@@ -875,21 +943,46 @@ class TextParser:
 
         if legal_forms is None:
             legal_forms = [
-                'SCCIL', 'SCCL', 'CORP', 'LTD', 'INC', 'LLC',
-                'SAL', 'SAU', 'SLU', 'SRL', 'SAC', 'SCA', 'SLL',
-                'SCOOP', 'SRLL', 'SLP', 'SAD',
-                'CO', 'LC', 'LP', 'AG', 'NV',
-                'SA', 'SL', 'SC', 'RL', 'CB', 'FC', 'S',
+                "SCCIL",
+                "SCCL",
+                "CORP",
+                "LTD",
+                "INC",
+                "LLC",
+                "SAL",
+                "SAU",
+                "SLU",
+                "SRL",
+                "SAC",
+                "SCA",
+                "SLL",
+                "SCOOP",
+                "SRLL",
+                "SLP",
+                "SAD",
+                "CO",
+                "LC",
+                "LP",
+                "AG",
+                "NV",
+                "SA",
+                "SL",
+                "SC",
+                "RL",
+                "CB",
+                "FC",
+                "S",
             ]
 
         from .names_parser import parse_company as _parse_company
+
         return _parse_company(company_name, legal_forms)
 
     def format_company(
         self,
         company_name: str,
         company_type: Optional[str],
-        fmt: str = 'dots',
+        fmt: str = "dots",
     ) -> Optional[str]:
         """
         Format a company name with its legal form.
@@ -907,6 +1000,7 @@ class TextParser:
             # "EMPRESA ABC S.L."
         """
         from .names_parser import format_companyname
+
         return format_companyname(company_name, company_type, fmt)
 
     # ------------------------------------------------------------------
@@ -946,13 +1040,13 @@ class TextParser:
         """
         if not callable(func):
             raise TypeError(f"func must be callable, got {type(func).__name__}")
-        if not hasattr(self, '_custom_functions'):
+        if not hasattr(self, "_custom_functions"):
             self._custom_functions: Dict[str, Callable[[str], str]] = {}
         self._custom_functions[name] = func
 
     def unregister_custom(self, name: str) -> None:
         """Remove a registered custom parsing function."""
-        if hasattr(self, '_custom_functions'):
+        if hasattr(self, "_custom_functions"):
             self._custom_functions.pop(name, None)
 
     def run_custom(self, name: str, text: str) -> str:
@@ -969,12 +1063,9 @@ class TextParser:
         Raises:
             ValueError: If *name* is not registered.
         """
-        funcs = getattr(self, '_custom_functions', {})
+        funcs = getattr(self, "_custom_functions", {})
         if name not in funcs:
-            raise ValueError(
-                f"Custom function '{name}' not registered. "
-                f"Registered: {list(funcs.keys())}"
-            )
+            raise ValueError(f"Custom function '{name}' not registered. Registered: {list(funcs.keys())}")
         return funcs[name](text)
 
     def list_custom(self) -> Dict[str, str]:
@@ -984,11 +1075,8 @@ class TextParser:
         Returns:
             Dict mapping name to the callable's qualified name.
         """
-        funcs = getattr(self, '_custom_functions', {})
-        return {
-            name: getattr(fn, '__qualname__', repr(fn))
-            for name, fn in funcs.items()
-        }
+        funcs = getattr(self, "_custom_functions", {})
+        return {name: getattr(fn, "__qualname__", repr(fn)) for name, fn in funcs.items()}
 
     # ------------------------------------------------------------------
     # Language normalizer customization

@@ -26,13 +26,15 @@ def example_basic_usage() -> None:
     print("1. Basic Usage with Defaults")
     print("=" * 60)
 
-    config = Config(defaults={
-        "locale": "es_ES",
-        "preset": "default",
-        "levenshtein_threshold": 0.85,
-        "jaro_winkler_threshold": 0.9,
-        "ignore_case": True,
-    })
+    config = Config(
+        defaults={
+            "locale": "es_ES",
+            "preset": "default",
+            "levenshtein_threshold": 0.85,
+            "jaro_winkler_threshold": 0.9,
+            "ignore_case": True,
+        }
+    )
 
     print(f"  locale                = {config.get('locale')}")
     print(f"  preset                = {config.get('preset')}")
@@ -107,10 +109,12 @@ def example_schema_validation() -> None:
     print("=" * 60)
 
     schema = ConfigSchema()
-    schema.add_field("locale", type=str, required=True,
-                     choices=["es_ES", "en_US", "en_GB", "pt_BR", "pt_PT",
-                              "fr_FR", "de_DE", "it_IT", "es_MX", "es_AR",
-                              "es_CO", "es_CL"])
+    schema.add_field(
+        "locale",
+        type=str,
+        required=True,
+        choices=["es_ES", "en_US", "en_GB", "pt_BR", "pt_PT", "fr_FR", "de_DE", "it_IT", "es_MX", "es_AR", "es_CO", "es_CL"],
+    )
     schema.add_field("levenshtein_threshold", type=float, min_value=0.0, max_value=1.0)
     schema.add_field("jaro_winkler_threshold", type=float, min_value=0.0, max_value=1.0)
     schema.add_field("cache_size", type=int, min_value=1, max_value=100000)

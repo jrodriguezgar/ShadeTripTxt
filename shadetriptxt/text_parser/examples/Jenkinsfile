@@ -1,0 +1,108 @@
+// TextParser - Jenkins Pipeline
+// Copy to repo root as "Jenkinsfile" and adjust parameters/stages.
+//
+// CLI supports:
+//   --ci       → no colors, quiet, JSON output, exit codes
+//   run_api()  → programmatic Python API (CLIResult dataclass)
+//
+// Exit codes: 0=success, 1=runtime error, 2=usage error
+
+pipeline {
+    agent any
+    parameters {
+        choice(name: 'LOCALE', choices: ['es_ES', 'en_US', 'en_GB', 'pt_BR', 'pt_PT', 'fr_FR', 'de_DE', 'it_IT'], description: 'Processing locale')
+        choice(name: 'OPERATION', choices: ['normalize', 'fix-encoding', 'phonetic', 'prepare', 'remove-articles'], description: 'Batch operation to apply')
+        string(name: 'INPUT_FILE', defaultValue: 'data/raw_names.txt', description: 'Input file path')
+        string(name: 'OUTPUT_FILE', defaultValue: 'output/clean_names.txt', description: 'Output file path')
+        booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Simulate without changes')
+        booleanParam(name: 'RUN_LINT', defaultValue: true, description: 'Run linter')
+        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run test suite')
+    }
+    environment {
+        PYTHONPATH = '.'
+        PYTHONIOENCODING = 'utf-8'
+        NO_COLOR = '1'
+    }
+    options {
+        timestamps()
+        timeout(time: 30, unit: 'MINUTES')
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+        disableConcurrentBuilds()
+    }
+    stages {
+        stage('Setup') {
+            steps {
+                sh 'pip install uv && uv sync --quiet'
+            }
+        }
+        stage('Lint') {
+            when { expression { params.RUN_LINT } }
+            steps {
+                sh 'uv run ruff check shadetriptxt/text_parser/'
+            }
+        }
+        stage('Test') {
+            when { expression { params.RUN_TESTS } }
+            steps {
+                sh 'uv run pytest tests/ -v --no-color --tb=short --junitxml=reports/junit.xml'
+            }
+            post {
+                always { junit 'reports/junit.xml' }
+            }
+        }
+        stage('Normalize Data') {
+            steps {
+                sh """uv run python -m shadetriptxt.text_parser.cli batch \
+                       --input ${params.INPUT_FILE} \
+                       --operation ${params.OPERATION} \
+                       --locale ${params.LOCALE} \
+                       --ci \
+                       -o ${params.OUTPUT_FILE} \
+                       ${params.DRY_RUN ? '--dry-run' : ''}"""
+            }
+        }
+        stage('Fix Encoding') {
+            steps {
+                sh '''uv run python -m shadetriptxt.text_parser.cli batch \
+                       --input data/legacy_export.txt \
+                       --operation fix-encoding \
+                       --ci \
+                       -o output/fixed_encoding.txt'''
+            }
+        }
+        stage('Extract Emails') {
+            steps {
+                sh '''uv run python -m shadetriptxt.text_parser.cli extract \
+                       --input data/contacts.txt --type emails \
+                       --ci -o output/emails.json'''
+            }
+        }
+        stage('Verify') {
+            steps {
+                sh 'ls -la output/'
+                sh 'test -s output/clean_names.txt || exit 1'
+            }
+        }
+        stage('API Test') {
+            steps {
+                sh '''uv run python -c "
+from shadetriptxt.text_parser.cli import run_api
+result = run_api(['normalize', 'José García-López'])
+assert result.ok, f'API call failed: {result.error}'
+print(f'Stats: {result.stats}')
+"'''
+            }
+        }
+    }
+    post {
+        success {
+            archiveArtifacts artifacts: 'output/**,reports/**', fingerprint: true
+        }
+        failure {
+            echo 'Text processing pipeline failed — check stage logs above'
+        }
+        cleanup {
+            cleanWs()
+        }
+    }
+}

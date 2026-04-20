@@ -79,6 +79,7 @@ ENV_PREFIX = "TEXTPARSER_"
 
 class ConfigSource(Enum):
     """Sources for configuration values."""
+
     DEFAULT = "default"
     FILE = "file"
     ENVIRONMENT = "environment"
@@ -87,6 +88,7 @@ class ConfigSource(Enum):
 
 class ConfigFormat(Enum):
     """Supported configuration file formats."""
+
     JSON = "json"
     YAML = "yaml"
     TOML = "toml"
@@ -95,6 +97,7 @@ class ConfigFormat(Enum):
 @dataclass
 class ConfigValue:
     """Configuration value with source metadata."""
+
     value: Any
     source: ConfigSource = ConfigSource.DEFAULT
     key: str = ""
@@ -186,7 +189,9 @@ class Config:
         if defaults:
             for key, value in defaults.items():
                 self._defaults[key] = ConfigValue(
-                    value=value, source=ConfigSource.DEFAULT, key=key,
+                    value=value,
+                    source=ConfigSource.DEFAULT,
+                    key=key,
                 )
 
         if auto_discover:
@@ -226,6 +231,7 @@ class Config:
                     data = json.load(f)
                 elif format == ConfigFormat.YAML:
                     import yaml
+
                     data = yaml.safe_load(f)
                 elif format == ConfigFormat.TOML:
                     try:
@@ -267,10 +273,12 @@ class Config:
         """
         for key, value in os.environ.items():
             if key.startswith(prefix):
-                config_key = key[len(prefix):].replace("__", ".").lower()
+                config_key = key[len(prefix) :].replace("__", ".").lower()
                 parsed_value = self._parse_env_value(value)
                 self._env_values[config_key] = ConfigValue(
-                    value=parsed_value, source=ConfigSource.ENVIRONMENT, key=config_key,
+                    value=parsed_value,
+                    source=ConfigSource.ENVIRONMENT,
+                    key=config_key,
                 )
         return self
 
@@ -304,7 +312,9 @@ class Config:
         for key, value in args.items():  # type: ignore[union-attr]
             if value is not None:
                 self._arg_values[key] = ConfigValue(
-                    value=value, source=ConfigSource.ARGUMENT, key=key,
+                    value=value,
+                    source=ConfigSource.ARGUMENT,
+                    key=key,
                 )
         return self
 
@@ -334,7 +344,9 @@ class Config:
     def set(self, key: str, value: Any) -> Config:
         """Set a configuration value (highest priority). Returns self for chaining."""
         self._arg_values[key] = ConfigValue(
-            value=value, source=ConfigSource.ARGUMENT, key=key,
+            value=value,
+            source=ConfigSource.ARGUMENT,
+            key=key,
         )
         return self
 
@@ -396,6 +408,7 @@ class Config:
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
+
 
 def load_config(
     filepath: Optional[str] = None,

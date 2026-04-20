@@ -22,7 +22,6 @@ from shadetriptxt.text_parser.cli import (
     print_table,
     print_summary,
     print_progress,
-    Colors,
 )
 
 

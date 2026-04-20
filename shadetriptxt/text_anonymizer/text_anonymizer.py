@@ -25,6 +25,8 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from enum import Enum
+
+from shadetriptxt.utils._locale import BaseLocaleProfile
 from typing import (
     Any,
     Callable,
@@ -42,8 +44,10 @@ from typing import (
 # PII entity types
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class PiiType(str, Enum):
     """Types of Personally Identifiable Information that can be detected."""
+
     NAME = "NAME"
     EMAIL = "EMAIL"
     PHONE = "PHONE"
@@ -65,35 +69,40 @@ class PiiType(str, Enum):
 # Anonymization strategies
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 class Strategy(str, Enum):
     """How to replace detected PII."""
-    MASK = "mask"                    # J*** D**  /  ****@****.***
-    REPLACE = "replace"              # Replace with realistic fake data
-    HASH = "hash"                    # SHA-256 (truncated)
-    REDACT = "redact"                # [REDACTED] or [NAME]
-    GENERALIZE = "generalize"        # 34 → 30-40  /  15/03/1990 → 1990
-    PSEUDONYMIZE = "pseudonymize"    # Consistent: same input → same output
-    SUPPRESS = "suppress"            # Remove completely (empty string)
+
+    MASK = "mask"  # J*** D**  /  ****@****.***
+    REPLACE = "replace"  # Replace with realistic fake data
+    HASH = "hash"  # SHA-256 (truncated)
+    REDACT = "redact"  # [REDACTED] or [NAME]
+    GENERALIZE = "generalize"  # 34 → 30-40  /  15/03/1990 → 1990
+    PSEUDONYMIZE = "pseudonymize"  # Consistent: same input → same output
+    SUPPRESS = "suppress"  # Remove completely (empty string)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Detection result dataclass
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 @dataclass
 class DetectedEntity:
     """A PII entity found in text."""
+
     text: str
     pii_type: PiiType
     start: int
     end: int
     confidence: float = 1.0
-    source: str = "regex"            # "regex" | "spacy" | "nltk"
+    source: str = "regex"  # "regex" | "spacy" | "nltk"
 
 
 @dataclass
 class AnonymizationResult:
     """Result of anonymizing a text."""
+
     original: str
     anonymized: str
     entities: List[DetectedEntity] = field(default_factory=list)
@@ -103,6 +112,7 @@ class AnonymizationResult:
 @dataclass
 class PrivacyReport:
     """Privacy metric report for tabular data (pycanon)."""
+
     k_anonymity: Optional[int] = None
     l_diversity: Optional[int] = None
     t_closeness: Optional[float] = None
@@ -113,14 +123,13 @@ class PrivacyReport:
 # Locale-aware regex patterns for PII detection
 # ═══════════════════════════════════════════════════════════════════════════
 
+
 @dataclass(frozen=True)
-class AnonymizerLocaleProfile:
+class AnonymizerLocaleProfile(BaseLocaleProfile):
     """Locale profile with PII detection patterns and settings."""
-    code: str
-    country: str
-    language: str
-    spacy_model: str                          # e.g. "es_core_news_sm"
-    nltk_language: str                        # e.g. "spanish"
+
+    spacy_model: str  # e.g. "es_core_news_sm"
+    nltk_language: str  # e.g. "spanish"
     id_patterns: List[Tuple[str, str]] = field(default_factory=list)
     phone_pattern: str = ""
     postcode_pattern: str = ""
@@ -129,8 +138,11 @@ class AnonymizerLocaleProfile:
 LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
     # --- Spanish ---
     "es_ES": AnonymizerLocaleProfile(
-        code="es_ES", country="Spain", language="Spanish",
-        spacy_model="es_core_news_sm", nltk_language="spanish",
+        code="es_ES",
+        country="Spain",
+        language="Spanish",
+        spacy_model="es_core_news_sm",
+        nltk_language="spanish",
         id_patterns=[
             ("DNI/NIF", r"\b\d{8}[A-Z]\b"),
             ("NIE", r"\b[XYZ]\d{7}[A-Z]\b"),
@@ -139,8 +151,11 @@ LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
         postcode_pattern=r"\b(?:0[1-9]|[1-4]\d|5[0-2])\d{3}\b",
     ),
     "es_MX": AnonymizerLocaleProfile(
-        code="es_MX", country="Mexico", language="Spanish",
-        spacy_model="es_core_news_sm", nltk_language="spanish",
+        code="es_MX",
+        country="Mexico",
+        language="Spanish",
+        spacy_model="es_core_news_sm",
+        nltk_language="spanish",
         id_patterns=[
             ("CURP", r"\b[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d\b"),
             ("RFC", r"\b[A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3}\b"),
@@ -149,8 +164,11 @@ LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
         postcode_pattern=r"\b\d{5}\b",
     ),
     "es_AR": AnonymizerLocaleProfile(
-        code="es_AR", country="Argentina", language="Spanish",
-        spacy_model="es_core_news_sm", nltk_language="spanish",
+        code="es_AR",
+        country="Argentina",
+        language="Spanish",
+        spacy_model="es_core_news_sm",
+        nltk_language="spanish",
         id_patterns=[
             ("DNI", r"\b\d{7,8}\b"),
             ("CUIL", r"\b(?:20|23|24|27)-?\d{7,8}-?\d\b"),
@@ -159,8 +177,11 @@ LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
         postcode_pattern=r"\b[A-Z]\d{4}[A-Z]{3}\b",
     ),
     "es_CO": AnonymizerLocaleProfile(
-        code="es_CO", country="Colombia", language="Spanish",
-        spacy_model="es_core_news_sm", nltk_language="spanish",
+        code="es_CO",
+        country="Colombia",
+        language="Spanish",
+        spacy_model="es_core_news_sm",
+        nltk_language="spanish",
         id_patterns=[
             ("Cédula", r"\b\d{6,10}\b"),
         ],
@@ -168,8 +189,11 @@ LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
         postcode_pattern=r"\b\d{6}\b",
     ),
     "es_CL": AnonymizerLocaleProfile(
-        code="es_CL", country="Chile", language="Spanish",
-        spacy_model="es_core_news_sm", nltk_language="spanish",
+        code="es_CL",
+        country="Chile",
+        language="Spanish",
+        spacy_model="es_core_news_sm",
+        nltk_language="spanish",
         id_patterns=[
             ("RUT", r"\b\d{1,2}\.?\d{3}\.?\d{3}-?[0-9Kk]\b"),
         ],
@@ -178,86 +202,93 @@ LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
     ),
     # --- English ---
     "en_US": AnonymizerLocaleProfile(
-        code="en_US", country="United States", language="English",
-        spacy_model="en_core_web_sm", nltk_language="english",
+        code="en_US",
+        country="United States",
+        language="English",
+        spacy_model="en_core_web_sm",
+        nltk_language="english",
         id_patterns=[
             ("SSN", r"\b\d{3}-\d{2}-\d{4}\b"),
             ("EIN", r"\b\d{2}-\d{7}\b"),
         ],
-        phone_pattern=(
-            r"(?:\+1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b"
-        ),
+        phone_pattern=(r"(?:\+1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b"),
         postcode_pattern=r"\b\d{5}(?:-\d{4})?\b",
     ),
     "en_GB": AnonymizerLocaleProfile(
-        code="en_GB", country="United Kingdom", language="English",
-        spacy_model="en_core_web_sm", nltk_language="english",
+        code="en_GB",
+        country="United Kingdom",
+        language="English",
+        spacy_model="en_core_web_sm",
+        nltk_language="english",
         id_patterns=[
             ("NINO", r"\b[A-CEGHJ-PR-TW-Z]{2}\d{6}[A-D]\b"),
         ],
-        phone_pattern=(
-            r"(?:\+44[\s.-]?)?\b0?\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{3,4}\b"
-        ),
+        phone_pattern=(r"(?:\+44[\s.-]?)?\b0?\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{3,4}\b"),
         postcode_pattern=r"\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b",
     ),
     # --- Portuguese ---
     "pt_BR": AnonymizerLocaleProfile(
-        code="pt_BR", country="Brazil", language="Portuguese",
-        spacy_model="pt_core_news_sm", nltk_language="portuguese",
+        code="pt_BR",
+        country="Brazil",
+        language="Portuguese",
+        spacy_model="pt_core_news_sm",
+        nltk_language="portuguese",
         id_patterns=[
             ("CPF", r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b"),
             ("CNPJ", r"\b\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}\b"),
         ],
-        phone_pattern=(
-            r"(?:\+55[\s.-]?)?\(?\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}\b"
-        ),
+        phone_pattern=(r"(?:\+55[\s.-]?)?\(?\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}\b"),
         postcode_pattern=r"\b\d{5}-?\d{3}\b",
     ),
     "pt_PT": AnonymizerLocaleProfile(
-        code="pt_PT", country="Portugal", language="Portuguese",
-        spacy_model="pt_core_news_sm", nltk_language="portuguese",
+        code="pt_PT",
+        country="Portugal",
+        language="Portuguese",
+        spacy_model="pt_core_news_sm",
+        nltk_language="portuguese",
         id_patterns=[
             ("NIF", r"\b[1-9]\d{8}\b"),
         ],
-        phone_pattern=(
-            r"(?:\+351[\s.-]?)?\b[29]\d{1,2}[\s.-]?\d{3}[\s.-]?\d{3,4}\b"
-        ),
+        phone_pattern=(r"(?:\+351[\s.-]?)?\b[29]\d{1,2}[\s.-]?\d{3}[\s.-]?\d{3,4}\b"),
         postcode_pattern=r"\b\d{4}-\d{3}\b",
     ),
     # --- French ---
     "fr_FR": AnonymizerLocaleProfile(
-        code="fr_FR", country="France", language="French",
-        spacy_model="fr_core_news_sm", nltk_language="french",
+        code="fr_FR",
+        country="France",
+        language="French",
+        spacy_model="fr_core_news_sm",
+        nltk_language="french",
         id_patterns=[
             ("NIR", r"\b[12]\s?\d{2}\s?\d{2}\s?\d{2}\s?\d{3}\s?\d{3}\s?\d{2}\b"),
         ],
-        phone_pattern=(
-            r"(?:\+33[\s.-]?)?\b0?[1-9][\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b"
-        ),
+        phone_pattern=(r"(?:\+33[\s.-]?)?\b0?[1-9][\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}[\s.-]?\d{2}\b"),
         postcode_pattern=r"\b\d{5}\b",
     ),
     # --- German ---
     "de_DE": AnonymizerLocaleProfile(
-        code="de_DE", country="Germany", language="German",
-        spacy_model="de_core_news_sm", nltk_language="german",
+        code="de_DE",
+        country="Germany",
+        language="German",
+        spacy_model="de_core_news_sm",
+        nltk_language="german",
         id_patterns=[
             ("Personalausweis", r"\b[A-Z0-9]{10}\b"),
         ],
-        phone_pattern=(
-            r"(?:\+49[\s.-]?)0?\d{2,5}[\s.-]?\d{4,8}\b"
-        ),
+        phone_pattern=(r"(?:\+49[\s.-]?)0?\d{2,5}[\s.-]?\d{4,8}\b"),
         postcode_pattern=r"\b\d{5}\b",
     ),
     # --- Italian ---
     "it_IT": AnonymizerLocaleProfile(
-        code="it_IT", country="Italy", language="Italian",
-        spacy_model="it_core_news_sm", nltk_language="italian",
+        code="it_IT",
+        country="Italy",
+        language="Italian",
+        spacy_model="it_core_news_sm",
+        nltk_language="italian",
         id_patterns=[
             ("Codice Fiscale", r"\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b"),
         ],
-        phone_pattern=(
-            r"(?:\+39[\s.-]?)0?\d{2,4}[\s.-]?\d{4,8}\b"
-        ),
+        phone_pattern=(r"(?:\+39[\s.-]?)0?\d{2,4}[\s.-]?\d{4,8}\b"),
         postcode_pattern=r"\b\d{5}\b",
     ),
 }
@@ -268,24 +299,18 @@ LOCALE_PROFILES: Dict[str, AnonymizerLocaleProfile] = {
 # ═══════════════════════════════════════════════════════════════════════════
 
 _UNIVERSAL_PATTERNS: Dict[PiiType, re.Pattern] = {
-    PiiType.EMAIL: re.compile(
-        r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Z|a-z]{2,}\b"
-    ),
+    PiiType.EMAIL: re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Z|a-z]{2,}\b"),
     PiiType.CREDIT_CARD: re.compile(
         r"\b(?:4\d{3}|5[1-5]\d{2}|3[47]\d{2}|6(?:011|5\d{2}))"
         r"[\s\-]?\d{4}[\s\-]?\d{4}[\s\-]?\d{2,4}\b"
     ),
-    PiiType.IBAN: re.compile(
-        r"\b[A-Z]{2}\d{2}[\s]?[\dA-Z]{4}[\s]?(?:[\dA-Z]{4}[\s]?){2,7}[\dA-Z]{1,4}\b"
-    ),
+    PiiType.IBAN: re.compile(r"\b[A-Z]{2}\d{2}[\s]?[\dA-Z]{4}[\s]?(?:[\dA-Z]{4}[\s]?){2,7}[\dA-Z]{1,4}\b"),
     PiiType.IP_ADDRESS: re.compile(
         r"\b(?:\d{1,3}\.){3}\d{1,3}\b"
         r"|"
         r"\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b"
     ),
-    PiiType.URL: re.compile(
-        r"https?://[^\s<>\"']+|www\.[^\s<>\"']+"
-    ),
+    PiiType.URL: re.compile(r"https?://[^\s<>\"']+|www\.[^\s<>\"']+"),
     PiiType.DATE: re.compile(
         r"\b\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}\b"
         r"|"
@@ -304,6 +329,7 @@ _UNIVERSAL_PATTERNS: Dict[PiiType, re.Pattern] = {
 # ═══════════════════════════════════════════════════════════════════════════
 # Main class
 # ═══════════════════════════════════════════════════════════════════════════
+
 
 class TextAnonymizer:
     """Locale-aware PII detection and data anonymization."""
@@ -342,7 +368,7 @@ class TextAnonymizer:
         # Lazy-loaded references (None until first use)
         self._spacy_nlp: Any = None
         self._nltk_loaded: bool = False
-        self._dummy: Any = None   # TextDummy instance (replaces raw Faker)
+        self._dummy: Any = None  # TextDummy instance (replaces raw Faker)
 
         # Pseudonymization cache: original → replacement
         self._pseudo_map: Dict[str, str] = {}
@@ -361,6 +387,7 @@ class TextAnonymizer:
 
         if seed is not None:
             import random as _rnd
+
             _rnd.seed(seed)
 
     # ───────────────────────────────────────────────────────────────────
@@ -371,30 +398,38 @@ class TextAnonymizer:
         """Lazy-load spaCy with the locale-specific model."""
         if self._spacy_nlp is None:
             import spacy  # lazy
-            model_name = (
-                self.profile.spacy_model if self.profile else "en_core_web_sm"
-            )
+
+            model_name = self.profile.spacy_model if self.profile else "en_core_web_sm"
             try:
                 self._spacy_nlp = spacy.load(model_name)
             except OSError:
-                raise RuntimeError(
-                    f"spaCy model '{model_name}' not found. "
-                    f"Install it with: python -m spacy download {model_name}"
-                )
+                raise RuntimeError(f"spaCy model '{model_name}' not found. Install it with: python -m spacy download {model_name}")
         return self._spacy_nlp
 
     def _ensure_nltk(self) -> None:
         """Lazy-load NLTK resources (tokenizers, NER)."""
         if not self._nltk_loaded:
             import nltk  # lazy
-            for resource in ("punkt", "punkt_tab", "averaged_perceptron_tagger",
-                             "averaged_perceptron_tagger_eng", "maxent_ne_chunker",
-                             "maxent_ne_chunker_tab", "words"):
+
+            for resource in (
+                "punkt",
+                "punkt_tab",
+                "averaged_perceptron_tagger",
+                "averaged_perceptron_tagger_eng",
+                "maxent_ne_chunker",
+                "maxent_ne_chunker_tab",
+                "words",
+            ):
                 try:
-                    nltk.data.find(f"tokenizers/{resource}" if "punkt" in resource
-                                   else f"taggers/{resource}" if "tagger" in resource
-                                   else f"chunkers/{resource}" if "chunker" in resource
-                                   else f"corpora/{resource}")
+                    nltk.data.find(
+                        f"tokenizers/{resource}"
+                        if "punkt" in resource
+                        else f"taggers/{resource}"
+                        if "tagger" in resource
+                        else f"chunkers/{resource}"
+                        if "chunker" in resource
+                        else f"corpora/{resource}"
+                    )
                 except LookupError:
                     nltk.download(resource, quiet=True)
             self._nltk_loaded = True
@@ -403,6 +438,7 @@ class TextAnonymizer:
         """Lazy-load TextDummy for locale-aware fake data generation."""
         if self._dummy is None:
             from shadetriptxt.text_dummy.text_dummy import TextDummy
+
             self._dummy = TextDummy(self.locale, seed=self.seed)
         return self._dummy
 
@@ -509,48 +545,73 @@ class TextAnonymizer:
         # Universal patterns
         for pii_type, pattern in _UNIVERSAL_PATTERNS.items():
             for m in pattern.finditer(text):
-                entities.append(DetectedEntity(
-                    text=m.group(), pii_type=pii_type,
-                    start=m.start(), end=m.end(),
-                    confidence=0.9, source="regex",
-                ))
+                entities.append(
+                    DetectedEntity(
+                        text=m.group(),
+                        pii_type=pii_type,
+                        start=m.start(),
+                        end=m.end(),
+                        confidence=0.9,
+                        source="regex",
+                    )
+                )
 
         # Locale-specific ID documents
         if self.profile:
             for doc_name, pat in self.profile.id_patterns:
                 for m in re.finditer(pat, text):
-                    entities.append(DetectedEntity(
-                        text=m.group(), pii_type=PiiType.ID_DOCUMENT,
-                        start=m.start(), end=m.end(),
-                        confidence=0.85, source="regex",
-                    ))
+                    entities.append(
+                        DetectedEntity(
+                            text=m.group(),
+                            pii_type=PiiType.ID_DOCUMENT,
+                            start=m.start(),
+                            end=m.end(),
+                            confidence=0.85,
+                            source="regex",
+                        )
+                    )
 
             # Phone
             if self.profile.phone_pattern:
                 for m in re.finditer(self.profile.phone_pattern, text):
-                    entities.append(DetectedEntity(
-                        text=m.group(), pii_type=PiiType.PHONE,
-                        start=m.start(), end=m.end(),
-                        confidence=0.80, source="regex",
-                    ))
+                    entities.append(
+                        DetectedEntity(
+                            text=m.group(),
+                            pii_type=PiiType.PHONE,
+                            start=m.start(),
+                            end=m.end(),
+                            confidence=0.80,
+                            source="regex",
+                        )
+                    )
 
             # Postcode
             if self.profile.postcode_pattern:
                 for m in re.finditer(self.profile.postcode_pattern, text):
-                    entities.append(DetectedEntity(
-                        text=m.group(), pii_type=PiiType.ADDRESS,
-                        start=m.start(), end=m.end(),
-                        confidence=0.60, source="regex",
-                    ))
+                    entities.append(
+                        DetectedEntity(
+                            text=m.group(),
+                            pii_type=PiiType.ADDRESS,
+                            start=m.start(),
+                            end=m.end(),
+                            confidence=0.60,
+                            source="regex",
+                        )
+                    )
 
         # Custom patterns
         for _name, pattern in self._custom_patterns.items():
             for m in pattern.finditer(text):
-                entities.append(DetectedEntity(
-                    text=m.group(), pii_type=PiiType.CUSTOM,
-                    start=m.start(), end=m.end(),
-                    confidence=0.70, source="regex",
-                ))
+                entities.append(
+                    DetectedEntity(
+                        text=m.group(),
+                        pii_type=PiiType.CUSTOM,
+                        start=m.start(),
+                        end=m.end(),
+                        confidence=0.70,
+                        source="regex",
+                    )
+                )
 
         return entities
 
@@ -577,11 +638,16 @@ class TextAnonymizer:
         for ent in doc.ents:
             pii_type = self._SPACY_LABEL_MAP.get(ent.label_)
             if pii_type is not None:
-                entities.append(DetectedEntity(
-                    text=ent.text, pii_type=pii_type,
-                    start=ent.start_char, end=ent.end_char,
-                    confidence=0.75, source="spacy",
-                ))
+                entities.append(
+                    DetectedEntity(
+                        text=ent.text,
+                        pii_type=pii_type,
+                        start=ent.start_char,
+                        end=ent.end_char,
+                        confidence=0.75,
+                        source="spacy",
+                    )
+                )
         return entities
 
     # ───────────────────────────────────────────────────────────────────
@@ -617,11 +683,16 @@ class TextAnonymizer:
                         # Find position in original text
                         idx = text.find(chunk_text)
                         if idx >= 0:
-                            entities.append(DetectedEntity(
-                                text=chunk_text, pii_type=pii_type,
-                                start=idx, end=idx + len(chunk_text),
-                                confidence=0.65, source="nltk",
-                            ))
+                            entities.append(
+                                DetectedEntity(
+                                    text=chunk_text,
+                                    pii_type=pii_type,
+                                    start=idx,
+                                    end=idx + len(chunk_text),
+                                    confidence=0.65,
+                                    source="nltk",
+                                )
+                            )
         return entities
 
     # ───────────────────────────────────────────────────────────────────
@@ -669,9 +740,7 @@ class TextAnonymizer:
 
         # Filter by type
         if pii_types is not None:
-            type_set: Set[PiiType] = {
-                PiiType(t) if isinstance(t, str) else t for t in pii_types
-            }
+            type_set: Set[PiiType] = {PiiType(t) if isinstance(t, str) else t for t in pii_types}
             all_entities = [e for e in all_entities if e.pii_type in type_set]
 
         # Sort by position
@@ -688,9 +757,7 @@ class TextAnonymizer:
         kept: List[DetectedEntity] = []
         used_ranges: List[Tuple[int, int]] = []
         for ent in ranked:
-            overlap = any(
-                not (ent.end <= s or ent.start >= e) for s, e in used_ranges
-            )
+            overlap = any(not (ent.end <= s or ent.start >= e) for s, e in used_ranges)
             if not overlap:
                 kept.append(ent)
                 used_ranges.append((ent.start, ent.end))
@@ -737,10 +804,7 @@ class TextAnonymizer:
             return c * len(text)
         if pii_type == PiiType.NAME:
             words = text.split()
-            return " ".join(
-                w[0] + c * (len(w) - 1) if len(w) > 1 else c
-                for w in words
-            )
+            return " ".join(w[0] + c * (len(w) - 1) if len(w) > 1 else c for w in words)
         # Generic masking
         return text[0] + c * (len(text) - 2) + text[-1] if len(text) > 2 else c * len(text)
 
@@ -822,7 +886,10 @@ class TextAnonymizer:
         return ""
 
     def _apply_strategy(
-        self, text: str, pii_type: PiiType, strategy: Optional[Strategy] = None,
+        self,
+        text: str,
+        pii_type: PiiType,
+        strategy: Optional[Strategy] = None,
     ) -> str:
         """Apply the chosen strategy to a PII value."""
         s = strategy or self._strategy_for(pii_type)
@@ -867,10 +934,7 @@ class TextAnonymizer:
         Returns:
             AnonymizationResult with the anonymized text and metadata.
         """
-        strat = (
-            Strategy(strategy) if isinstance(strategy, str)
-            else strategy
-        )
+        strat = Strategy(strategy) if isinstance(strategy, str) else strategy
 
         entities = self.detect_pii(
             text,
@@ -886,7 +950,7 @@ class TextAnonymizer:
         replacements: Dict[str, str] = {}
         for ent in sorted(entities, key=lambda e: -e.start):
             replacement = self._apply_strategy(ent.text, ent.pii_type, strat)
-            result = result[:ent.start] + replacement + result[ent.end:]
+            result = result[: ent.start] + replacement + result[ent.end :]
             replacements[ent.text] = replacement
 
         return AnonymizationResult(
@@ -902,38 +966,69 @@ class TextAnonymizer:
 
     # Mapping from field names to PII types (for automatic detection)
     _FIELD_PII_MAP: Dict[str, PiiType] = {
-        "name": PiiType.NAME, "nombre": PiiType.NAME,
-        "full_name": PiiType.NAME, "fullname": PiiType.NAME,
-        "first_name": PiiType.NAME, "firstname": PiiType.NAME,
-        "last_name": PiiType.NAME, "lastname": PiiType.NAME,
-        "surname": PiiType.NAME, "apellido": PiiType.NAME,
-        "email": PiiType.EMAIL, "correo": PiiType.EMAIL,
-        "mail": PiiType.EMAIL, "email_address": PiiType.EMAIL,
-        "phone": PiiType.PHONE, "telefono": PiiType.PHONE,
-        "phone_number": PiiType.PHONE, "mobile": PiiType.PHONE,
-        "telephone": PiiType.PHONE, "tel": PiiType.PHONE,
-        "address": PiiType.ADDRESS, "direccion": PiiType.ADDRESS,
-        "street": PiiType.ADDRESS, "street_address": PiiType.ADDRESS,
-        "city": PiiType.LOCATION, "ciudad": PiiType.LOCATION,
-        "state": PiiType.LOCATION, "provincia": PiiType.LOCATION,
-        "country": PiiType.LOCATION, "pais": PiiType.LOCATION,
-        "postcode": PiiType.ADDRESS, "zip_code": PiiType.ADDRESS,
-        "zip": PiiType.ADDRESS, "codigo_postal": PiiType.ADDRESS,
-        "dni": PiiType.ID_DOCUMENT, "nif": PiiType.ID_DOCUMENT,
-        "ssn": PiiType.ID_DOCUMENT, "id_document": PiiType.ID_DOCUMENT,
-        "document": PiiType.ID_DOCUMENT, "documento": PiiType.ID_DOCUMENT,
-        "passport": PiiType.ID_DOCUMENT, "pasaporte": PiiType.ID_DOCUMENT,
-        "curp": PiiType.ID_DOCUMENT, "rfc": PiiType.ID_DOCUMENT,
-        "cpf": PiiType.ID_DOCUMENT, "cnpj": PiiType.ID_DOCUMENT,
-        "credit_card": PiiType.CREDIT_CARD, "tarjeta": PiiType.CREDIT_CARD,
+        "name": PiiType.NAME,
+        "nombre": PiiType.NAME,
+        "full_name": PiiType.NAME,
+        "fullname": PiiType.NAME,
+        "first_name": PiiType.NAME,
+        "firstname": PiiType.NAME,
+        "last_name": PiiType.NAME,
+        "lastname": PiiType.NAME,
+        "surname": PiiType.NAME,
+        "apellido": PiiType.NAME,
+        "email": PiiType.EMAIL,
+        "correo": PiiType.EMAIL,
+        "mail": PiiType.EMAIL,
+        "email_address": PiiType.EMAIL,
+        "phone": PiiType.PHONE,
+        "telefono": PiiType.PHONE,
+        "phone_number": PiiType.PHONE,
+        "mobile": PiiType.PHONE,
+        "telephone": PiiType.PHONE,
+        "tel": PiiType.PHONE,
+        "address": PiiType.ADDRESS,
+        "direccion": PiiType.ADDRESS,
+        "street": PiiType.ADDRESS,
+        "street_address": PiiType.ADDRESS,
+        "city": PiiType.LOCATION,
+        "ciudad": PiiType.LOCATION,
+        "state": PiiType.LOCATION,
+        "provincia": PiiType.LOCATION,
+        "country": PiiType.LOCATION,
+        "pais": PiiType.LOCATION,
+        "postcode": PiiType.ADDRESS,
+        "zip_code": PiiType.ADDRESS,
+        "zip": PiiType.ADDRESS,
+        "codigo_postal": PiiType.ADDRESS,
+        "dni": PiiType.ID_DOCUMENT,
+        "nif": PiiType.ID_DOCUMENT,
+        "ssn": PiiType.ID_DOCUMENT,
+        "id_document": PiiType.ID_DOCUMENT,
+        "document": PiiType.ID_DOCUMENT,
+        "documento": PiiType.ID_DOCUMENT,
+        "passport": PiiType.ID_DOCUMENT,
+        "pasaporte": PiiType.ID_DOCUMENT,
+        "curp": PiiType.ID_DOCUMENT,
+        "rfc": PiiType.ID_DOCUMENT,
+        "cpf": PiiType.ID_DOCUMENT,
+        "cnpj": PiiType.ID_DOCUMENT,
+        "credit_card": PiiType.CREDIT_CARD,
+        "tarjeta": PiiType.CREDIT_CARD,
         "card_number": PiiType.CREDIT_CARD,
-        "iban": PiiType.IBAN, "bban": PiiType.IBAN,
-        "ip": PiiType.IP_ADDRESS, "ip_address": PiiType.IP_ADDRESS,
-        "url": PiiType.URL, "website": PiiType.URL, "web": PiiType.URL,
-        "date_of_birth": PiiType.DATE, "dob": PiiType.DATE,
-        "birth_date": PiiType.DATE, "birthdate": PiiType.DATE,
+        "iban": PiiType.IBAN,
+        "bban": PiiType.IBAN,
+        "ip": PiiType.IP_ADDRESS,
+        "ip_address": PiiType.IP_ADDRESS,
+        "url": PiiType.URL,
+        "website": PiiType.URL,
+        "web": PiiType.URL,
+        "date_of_birth": PiiType.DATE,
+        "dob": PiiType.DATE,
+        "birth_date": PiiType.DATE,
+        "birthdate": PiiType.DATE,
         "fecha_nacimiento": PiiType.DATE,
-        "company": PiiType.ORGANIZATION, "empresa": PiiType.ORGANIZATION,
+        "company": PiiType.ORGANIZATION,
+        "empresa": PiiType.ORGANIZATION,
         "organization": PiiType.ORGANIZATION,
     }
 
@@ -962,10 +1057,7 @@ class TextAnonymizer:
         Returns:
             New dictionary with anonymized values.
         """
-        strat = (
-            Strategy(strategy) if isinstance(strategy, str)
-            else strategy
-        )
+        strat = Strategy(strategy) if isinstance(strategy, str) else strategy
 
         allowed: Optional[Set[str]] = set(fields) if fields is not None else None
         ft = dict(field_types) if field_types else {}
@@ -985,10 +1077,7 @@ class TextAnonymizer:
             if pii_type_raw is None:
                 pii_type_raw = self._FIELD_PII_MAP.get(key.lower())
             if pii_type_raw is not None:
-                pii_type = (
-                    PiiType(pii_type_raw) if isinstance(pii_type_raw, str)
-                    else pii_type_raw
-                )
+                pii_type = PiiType(pii_type_raw) if isinstance(pii_type_raw, str) else pii_type_raw
                 result[key] = self._apply_strategy(str_val, pii_type, strat)
             else:
                 result[key] = value
@@ -1015,7 +1104,10 @@ class TextAnonymizer:
         """
         return [
             self.anonymize_dict(
-                r, field_types=field_types, strategy=strategy, fields=fields,
+                r,
+                field_types=field_types,
+                strategy=strategy,
+                fields=fields,
             )
             for r in records
         ]
@@ -1072,7 +1164,7 @@ class TextAnonymizer:
         df: Any,
         sensitive_attrs: Sequence[str],
         quasi_identifiers: Sequence[str],
-        l: int = 2,
+        l_value: int = 2,
         identifiers: Optional[Sequence[str]] = None,
         k: int = 2,
         supp_threshold: int = 0,
@@ -1088,7 +1180,7 @@ class TextAnonymizer:
             df: pandas DataFrame.
             sensitive_attrs: Sensitive attribute columns.
             quasi_identifiers: Quasi-identifier columns.
-            l: Desired l-diversity level.
+            l_value: Desired l-diversity level.
             identifiers: Direct identifier columns.
             k: k-anonymity level to apply first.
             supp_threshold: Maximum rows to suppress.
@@ -1105,7 +1197,7 @@ class TextAnonymizer:
             sa=list(sensitive_attrs),
             qi=list(quasi_identifiers),
             k_method=k_method,
-            l=l,
+            l=l_value,
             ident=list(identifiers or []),
             supp_threshold=supp_threshold,
             hierarchies=hierarchies or {},
@@ -1226,12 +1318,8 @@ class TextAnonymizer:
         Returns:
             New DataFrame with anonymized columns.
         """
-        import pandas as pd  # lazy
 
-        strat = (
-            Strategy(strategy) if isinstance(strategy, str)
-            else strategy
-        )
+        strat = Strategy(strategy) if isinstance(strategy, str) else strategy
         ct = dict(column_types) if column_types else {}
         allowed: Optional[Set[str]] = set(columns) if columns is not None else None
         result = df.copy()
@@ -1245,15 +1333,9 @@ class TextAnonymizer:
             if pii_type_raw is None:
                 pii_type_raw = self._FIELD_PII_MAP.get(col.lower())
             if pii_type_raw is not None:
-                pii_type = (
-                    PiiType(pii_type_raw) if isinstance(pii_type_raw, str)
-                    else pii_type_raw
-                )
+                pii_type = PiiType(pii_type_raw) if isinstance(pii_type_raw, str) else pii_type_raw
                 result[col] = result[col].apply(
-                    lambda val, pt=pii_type: (
-                        self._apply_strategy(str(val), pt, strat) if val is not None and str(val) != "nan"
-                        else val
-                    )
+                    lambda val, pt=pii_type: self._apply_strategy(str(val), pt, strat) if val is not None and str(val) != "nan" else val
                 )
         return result
 
@@ -1284,8 +1366,11 @@ class TextAnonymizer:
         """
         return [
             self.anonymize_text(
-                t, strategy=strategy,
-                use_regex=use_regex, use_spacy=use_spacy, use_nltk=use_nltk,
+                t,
+                strategy=strategy,
+                use_regex=use_regex,
+                use_spacy=use_spacy,
+                use_nltk=use_nltk,
             )
             for t in texts
         ]
@@ -1340,10 +1425,7 @@ class TextAnonymizer:
     # ───────────────────────────────────────────────────────────────────
 
     def __repr__(self) -> str:
-        return (
-            f"TextAnonymizer(locale={self.locale!r}, "
-            f"strategy={self.strategy.value!r})"
-        )
+        return f"TextAnonymizer(locale={self.locale!r}, strategy={self.strategy.value!r})"
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1385,7 +1467,10 @@ def anonymize_text(
     """Convenience: detect and anonymize PII in a text string."""
     anon = get_anonymizer(locale, strategy)
     return anon.anonymize_text(
-        text, use_regex=use_regex, use_spacy=use_spacy, use_nltk=use_nltk,
+        text,
+        use_regex=use_regex,
+        use_spacy=use_spacy,
+        use_nltk=use_nltk,
     )
 
 
@@ -1399,7 +1484,10 @@ def detect_pii(
     """Convenience: detect PII entities in text."""
     anon = get_anonymizer(locale)
     return anon.detect_pii(
-        text, use_regex=use_regex, use_spacy=use_spacy, use_nltk=use_nltk,
+        text,
+        use_regex=use_regex,
+        use_spacy=use_spacy,
+        use_nltk=use_nltk,
     )
 
 
@@ -1427,8 +1515,12 @@ def anonymize_dataframe(
     """Convenience: apply k-anonymity to a DataFrame."""
     anon = get_anonymizer(locale)
     return anon.anonymize_dataframe(
-        df, identifiers=identifiers, quasi_identifiers=quasi_identifiers,
-        k=k, method=method, hierarchies=hierarchies,
+        df,
+        identifiers=identifiers,
+        quasi_identifiers=quasi_identifiers,
+        k=k,
+        method=method,
+        hierarchies=hierarchies,
     )
 
 
@@ -1448,3 +1540,47 @@ def measure_privacy(
 # ═══════════════════════════════════════════════════════════════════════════
 
 SUPPORTED_LOCALES: List[str] = list(LOCALE_PROFILES.keys())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Standalone masking helpers
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def obfuscate_email(email: str) -> str:
+    """Partially mask an email address for display.
+
+    Keeps the first character of the local part, masks the rest,
+    and preserves the full domain.
+
+    Args:
+        email (str): A valid email address string.
+
+    Returns:
+        str: Masked email (e.g. ``"j***@example.com"``).
+
+    Raises:
+        TypeError: If *email* is not a string.
+        ValueError: If *email* does not contain ``@``.
+
+    Usage Example:
+        >>> obfuscate_email("john.doe@example.com")
+        'j***@example.com'
+
+    Cost:
+        O(n), where n is the length of the email.
+    """
+    if not isinstance(email, str):
+        raise TypeError("email must be a string")
+
+    if "@" not in email:
+        raise ValueError("email must contain '@'")
+
+    local, domain = email.rsplit("@", 1)
+
+    if len(local) <= 1:
+        masked_local = local
+    else:
+        masked_local = local[0] + "***"
+
+    return f"{masked_local}@{domain}"

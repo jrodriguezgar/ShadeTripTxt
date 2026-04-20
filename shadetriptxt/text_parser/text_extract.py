@@ -1,4 +1,3 @@
-
 """
 Module for extracting various content from text strings.
 
@@ -14,16 +13,18 @@ def _import_string_operations():
     """Lazy loader for string_operations."""
     return string_ops.get_in_text_by_pattern, string_ops.split_all
 
+
 class TextExtractor:
     """
     A class for extracting various types of content from text strings.
 
     Allows configuration of separators to customize extraction behavior.
     """
+
     # Compile regex patterns once for efficiency, as they are static.
     # \b ensures a "word boundary", so it matches whole numbers.
-    _POSTAL_CODE_5_DIGIT_PATTERN = re.compile(r'\b\d{5}\b')
-    _POSTAL_CODE_4_DIGIT_PATTERN = re.compile(r'\b\d{4}\b')
+    _POSTAL_CODE_5_DIGIT_PATTERN = re.compile(r"\b\d{5}\b")
+    _POSTAL_CODE_4_DIGIT_PATTERN = re.compile(r"\b\d{4}\b")
 
     def __init__(self, separators=None):
         """
@@ -44,10 +45,10 @@ class TextExtractor:
             # or TextExtractor(separators=' -()')
             # or TextExtractor(separators='all')
         """
-        if separators == 'all':
+        if separators == "all":
             self.separators = " \t\n\r\f\v-()./,;:!?@#$%^&*+="  # comprehensive separators
         elif isinstance(separators, list):
-            self.separators = ''.join(separators)
+            self.separators = "".join(separators)
         elif isinstance(separators, str):
             self.separators = separators
         else:
@@ -87,9 +88,9 @@ class TextExtractor:
             return None
 
         # Use internal utility to get the content inside parentheses
-        contents = self._get_in_text_by_pattern(text, 'text_in_parentheses')
+        contents = self._get_in_text_by_pattern(text, "text_in_parentheses")
         # Reconstruct the full strings with parentheses
-        full_matches = [f'({content})' for content in contents]
+        full_matches = [f"({content})" for content in contents]
         return full_matches if full_matches else None
 
     def tokenize(self, text: str) -> list[str] | None:
@@ -184,7 +185,7 @@ class TextExtractor:
         # - \d : Must end with a digit (to avoid capturing strings like "word-").
         # This pattern captures a broader string that *looks* like a phone number,
         # including its formatting characters.
-        phone_candidate_pattern = r'\+?\d[' + allowed_internal_chars + r'\d]*\d'
+        phone_candidate_pattern = r"\+?\d[" + allowed_internal_chars + r"\d]*\d"
 
         # Find all occurrences of the phone candidate pattern in the input string.
         potential_phone_strings = re.findall(phone_candidate_pattern, text)
@@ -193,7 +194,7 @@ class TextExtractor:
         for candidate_str in potential_phone_strings:
             # Clean the extracted string: remove all non-digit characters.
             # This gives us the pure digit sequence of the potential phone number.
-            cleaned_digits = re.sub(r'\D', '', candidate_str)  # \D matches any non-digit character
+            cleaned_digits = re.sub(r"\D", "", candidate_str)  # \D matches any non-digit character
 
             # Filter by minimum length. The original function used a minimum of 5 digits.
             if len(cleaned_digits) >= 5:
@@ -232,7 +233,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        emails = self._get_in_text_by_pattern(text, 'broad_email')
+        emails = self._get_in_text_by_pattern(text, "broad_email")
         return emails if emails else None
 
     def extract_mentions(self, text: str) -> list[str] | None:
@@ -262,7 +263,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        mention_pattern = re.compile(r'@\w+')
+        mention_pattern = re.compile(r"@\w+")
         mentions = mention_pattern.findall(text)
         return mentions if mentions else None
 
@@ -295,7 +296,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        currency_pattern = re.compile(r'\b[$€£¥]\d+(?:\.\d{2})?\b')
+        currency_pattern = re.compile(r"\b[$€£¥]\d+(?:\.\d{2})?\b")
         currencies = currency_pattern.findall(text)
         return currencies if currencies else None
 
@@ -326,7 +327,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        card_pattern = re.compile(r'\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b')
+        card_pattern = re.compile(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b")
         cards = card_pattern.findall(text)
         return cards if cards else None
 
@@ -357,7 +358,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        iban_pattern = re.compile(r'\b[A-Z]{2}\d{2}[A-Z0-9]{1,30}\b')
+        iban_pattern = re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{1,30}\b")
         ibans = iban_pattern.findall(text)
         return ibans if ibans else None
 
@@ -388,7 +389,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        bic_pattern = re.compile(r'\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b')
+        bic_pattern = re.compile(r"\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b")
         bics = bic_pattern.findall(text)
         return bics if bics else None
 
@@ -448,7 +449,7 @@ class TextExtractor:
         if not found_codes:
             # If no 5-digit codes are found, try to find 4-digit postal codes
             found_codes = self._POSTAL_CODE_4_DIGIT_PATTERN.findall(address_str)
-        
+
         # Return the list of found codes. If no codes are found, findall returns an empty list.
         return found_codes
 
@@ -479,7 +480,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        id_pattern = re.compile(r'\b[A-Z]+\d+\b')
+        id_pattern = re.compile(r"\b[A-Z]+\d+\b")
         ids = id_pattern.findall(text)
         return ids if ids else None
 
@@ -510,7 +511,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        pid_pattern = re.compile(r'\bPAT-\d+\b')
+        pid_pattern = re.compile(r"\bPAT-\d+\b")
         pids = pid_pattern.findall(text)
         return pids if pids else None
 
@@ -541,7 +542,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        nif_pattern = re.compile(r'\b\d{8}[A-Z]\b')
+        nif_pattern = re.compile(r"\b\d{8}[A-Z]\b")
         nifs = nif_pattern.findall(text)
         return nifs if nifs else None
 
@@ -572,7 +573,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        ssn_pattern = re.compile(r'\b\d{3}-\d{2}-\d{4}\b')
+        ssn_pattern = re.compile(r"\b\d{3}-\d{2}-\d{4}\b")
         ssns = ssn_pattern.findall(text)
         return ssns if ssns else None
 
@@ -605,7 +606,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        ips = self._get_in_text_by_pattern(text, 'ipv4_address')
+        ips = self._get_in_text_by_pattern(text, "ipv4_address")
         # Validate that each is a valid IP (0-255), but for simplicity, return as is
         return ips if ips else None
 
@@ -636,7 +637,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        checksum_pattern = re.compile(r'\b[a-fA-F0-9]{32,64}\b')
+        checksum_pattern = re.compile(r"\b[a-fA-F0-9]{32,64}\b")
         checksums = checksum_pattern.findall(text)
         return checksums if checksums else None
 
@@ -667,7 +668,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        cve_pattern = re.compile(r'\bCVE-\d{4}-\d{4,7}\b')
+        cve_pattern = re.compile(r"\bCVE-\d{4}-\d{4,7}\b")
         cves = cve_pattern.findall(text)
         return cves if cves else None
 
@@ -698,7 +699,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        version_pattern = re.compile(r'\b\d+(?:\.\d+)+\b')
+        version_pattern = re.compile(r"\b\d+(?:\.\d+)+\b")
         versions = version_pattern.findall(text)
         return versions if versions else None
 
@@ -729,7 +730,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        patent_pattern = re.compile(r'\b[A-Z]{2}\d+[A-Z]\d+\b')
+        patent_pattern = re.compile(r"\b[A-Z]{2}\d+[A-Z]\d+\b")
         patents = patent_pattern.findall(text)
         return patents if patents else None
 
@@ -760,7 +761,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        isbn_pattern = re.compile(r'\b(?:\d{9}[\dX]|\d{13})\b')
+        isbn_pattern = re.compile(r"\b(?:\d{9}[\dX]|\d{13})\b")
         isbns = isbn_pattern.findall(text)
         return isbns if isbns else None
 
@@ -794,7 +795,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        urls = self._get_in_text_by_pattern(text, 'basic_url')
+        urls = self._get_in_text_by_pattern(text, "basic_url")
         return urls if urls else None
 
     def extract_hashtags(self, text: str) -> list[str] | None:
@@ -824,7 +825,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        hashtag_pattern = re.compile(r'#\w+')
+        hashtag_pattern = re.compile(r"#\w+")
         hashtags = hashtag_pattern.findall(text)
         return hashtags if hashtags else None
 
@@ -858,7 +859,7 @@ class TextExtractor:
         quote_pattern = re.compile(r'(["\'])(.*?)\1')
         quotes = quote_pattern.findall(text)
         # findall returns list of tuples, take the full match
-        quotations = [f'{q[0]}{q[1]}{q[0]}' for q in quotes]
+        quotations = [f"{q[0]}{q[1]}{q[0]}" for q in quotes]
         return quotations if quotations else None
 
     def extract_paragraphs(self, text: str) -> list[str] | None:
@@ -888,7 +889,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
         return paragraphs if paragraphs else None
 
     def extract_classification_tags(self, text: str) -> list[str] | None:
@@ -918,7 +919,7 @@ class TextExtractor:
         if text is None:
             return None
 
-        tag_pattern = re.compile(r'\[.*?\]')
+        tag_pattern = re.compile(r"\[.*?\]")
         tags = tag_pattern.findall(text)
         return tags if tags else None
 
@@ -966,7 +967,7 @@ class TextExtractor:
             numbers = custom_re.findall(text)
             return numbers if numbers else None
 
-        numeric_pattern = re.compile(r'\b\d+(?:\.\d+)?\b')
+        numeric_pattern = re.compile(r"\b\d+(?:\.\d+)?\b")
         numbers = numeric_pattern.findall(text)
         return numbers if numbers else None
 
@@ -1010,7 +1011,7 @@ class TextExtractor:
             units = custom_re.findall(text)
             return units if units else None
 
-        unit_pattern = re.compile(r'\b\d+(?:\.\d+)?\s*[a-zA-Z]+\b')
+        unit_pattern = re.compile(r"\b\d+(?:\.\d+)?\s*[a-zA-Z]+\b")
         units = unit_pattern.findall(text)
         return units if units else None
 
@@ -1054,7 +1055,7 @@ class TextExtractor:
             percentages = custom_re.findall(text)
             return percentages if percentages else None
 
-        percentage_pattern = re.compile(r'\b\d+(?:\.\d+)?%\b')
+        percentage_pattern = re.compile(r"\b\d+(?:\.\d+)?%\b")
         percentages = percentage_pattern.findall(text)
         return percentages if percentages else None
 
@@ -1100,7 +1101,7 @@ class TextExtractor:
             dates = custom_re.findall(text)
             return dates if dates else None
 
-        date_pattern = re.compile(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b')
+        date_pattern = re.compile(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b")
         dates = date_pattern.findall(text)
         return dates if dates else None
 
@@ -1144,7 +1145,7 @@ class TextExtractor:
             times = custom_re.findall(text)
             return times if times else None
 
-        time_pattern = re.compile(r'\b\d{1,2}:\d{2}(?:\s?[AP]M)?\b')
+        time_pattern = re.compile(r"\b\d{1,2}:\d{2}(?:\s?[AP]M)?\b")
         times = time_pattern.findall(text)
         return times if times else None
 
@@ -1178,7 +1179,7 @@ class TextExtractor:
             return None
 
         # Simple pattern: at least 6 chars, mix of letters, digits, special
-        password_pattern = re.compile(r'\b(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*])[a-zA-Z\d!@#$%^&*]{6,}\b')
+        password_pattern = re.compile(r"\b(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*])[a-zA-Z\d!@#$%^&*]{6,}\b")
         passwords = password_pattern.findall(text)
         return passwords if passwords else None
 
@@ -1215,4 +1216,4 @@ def get_string_between(text: str, delimiter: str) -> str:
     end_index = text.find(delimiter, start_index + len(delimiter))
     if end_index == -1:
         return ""
-    return text[start_index + len(delimiter):end_index]
+    return text[start_index + len(delimiter) : end_index]

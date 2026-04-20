@@ -1,38 +1,60 @@
+import re
+import unicodedata
+from typing import Optional
+
+from .encoding_fixer import EncodingFixer
+
 # Listes de mots pour opérations catégorisées grammaticalement :
 # Liste de mots de liaison en français, pouvant être omis dans certains processus d'analyse de texte.
 # Conservés en majuscules pour des comparaisons normalisées.
 
 # Préfixes et particules dans les noms propres
-_NAME_PREFIXES = ['SAINT', 'SAINTE', 'DE', 'DU', 'DES', 'LE', 'LA', 'VAN', 'VON', 'DER', 'MC', 'MAC']
+_NAME_PREFIXES = ["SAINT", "SAINTE", "DE", "DU", "DES", "LE", "LA", "VAN", "VON", "DER", "MC", "MAC"]
 
 # Adverbes communs/connecteurs
-_ADVERBS = ['DÉJÀ', 'ENCORE', 'AUSSI', 'AINSI', 'MAINTENANT']
+_ADVERBS = ["DÉJÀ", "ENCORE", "AUSSI", "AINSI", "MAINTENANT"]
 
 # Pronoms personnels et objets
-_PRONOUNS = ['JE', 'TU', 'IL', 'ELLE', 'ON', 'NOUS', 'VOUS', 'ILS', 'ELLES', 'ME', 'TE', 'SE', 'LUI', 'LEUR', 'MOI', 'TOI']
+_PRONOUNS = ["JE", "TU", "IL", "ELLE", "ON", "NOUS", "VOUS", "ILS", "ELLES", "ME", "TE", "SE", "LUI", "LEUR", "MOI", "TOI"]
 
 # Déterminants (démonstratifs/possessifs)
-_DETERMINANTS = ['CE', 'CET', 'CETTE', 'CES', 'MON', 'MA', 'MES', 'TON', 'TA', 'TES', 'SON', 'SA', 'SES', 'NOTRE', 'VOTRE', 'LEUR', 'LEURS']
+_DETERMINANTS = ["CE", "CET", "CETTE", "CES", "MON", "MA", "MES", "TON", "TA", "TES", "SON", "SA", "SES", "NOTRE", "VOTRE", "LEUR", "LEURS"]
 
 # Articles
-_ARTICLES = ['LE', 'LA', 'LES', 'UN', 'UNE', 'DES', "L'"]
+_ARTICLES = ["LE", "LA", "LES", "UN", "UNE", "DES", "L'"]
 
 # Prépositions
-_PREPOSITIONS = ['À', 'AU', 'AUX', 'AVEC', 'CHEZ', 'CONTRE', 'DANS', 'DE', 'DU', 'DES', 'DEPUIS', 'EN', 'ENTRE', 'ENVERS', 'HORS', 'PAR', 'PARMI', 'PENDANT', 'POUR', 'SANS', 'SOUS', 'SUR', 'VERS']
-
-# Conjonctions
-_CONJUNCTIONS = ['ET', 'OU', 'NI', 'MAIS', 'OR', 'DONC', 'CAR', 'QUE', 'PUISQUE', 'QUOIQUE', 'LORSQUE', 'PARCE']
-
-# Liste de mots à omettre dans certains processus d'analyse.
-_SKIP_WORDS_MAP = [
-    'ET', 'OU', 'DE', 'DU', 'DES', 'LE', 'LA', 'LES',
-    'AU', 'AUX', 'UN', 'UNE', 'EN', 'À', 'PAR', 'POUR', 'DANS'
+_PREPOSITIONS = [
+    "À",
+    "AU",
+    "AUX",
+    "AVEC",
+    "CHEZ",
+    "CONTRE",
+    "DANS",
+    "DE",
+    "DU",
+    "DES",
+    "DEPUIS",
+    "EN",
+    "ENTRE",
+    "ENVERS",
+    "HORS",
+    "PAR",
+    "PARMI",
+    "PENDANT",
+    "POUR",
+    "SANS",
+    "SOUS",
+    "SUR",
+    "VERS",
 ]
 
+# Conjonctions
+_CONJUNCTIONS = ["ET", "OU", "NI", "MAIS", "OR", "DONC", "CAR", "QUE", "PUISQUE", "QUOIQUE", "LORSQUE", "PARCE"]
 
-import re
-from typing import Optional
-from .encoding_fixer import EncodingFixer
+# Liste de mots à omettre dans certains processus d'analyse.
+_SKIP_WORDS_MAP = ["ET", "OU", "DE", "DU", "DES", "LE", "LA", "LES", "AU", "AUX", "UN", "UNE", "EN", "À", "PAR", "POUR", "DANS"]
 
 
 # Precompile a regex for words to remove (articles, prepositions, conjunctions).
@@ -71,24 +93,24 @@ def remove_french_articles(input_string: Optional[str]) -> Optional[str]:
             return input_string
 
     # Remove elided articles first (l', d', etc.)
-    cleaned = _ELISION_PATTERN.sub('', input_string)
+    cleaned = _ELISION_PATTERN.sub("", input_string)
 
     # Then remove standard words
-    cleaned = _REMOVE_WORDS_PATTERN.sub('', cleaned)
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    cleaned = _REMOVE_WORDS_PATTERN.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
 
 # Module-level EncodingFixer instance (map is built once, shared across calls)
-_ENCODING_FIXER_FR = EncodingFixer(language='fr')
+_ENCODING_FIXER_FR = EncodingFixer(language="fr")
 
 # Legacy pre-processing: codepage conventions that are NOT mojibake
 _LEGACY_MAP_FR = {
-    "§": "º",   # section sign → masculine ordinal
+    "§": "º",  # section sign → masculine ordinal
 }
 
 
-def fix_french_conversion_fails(input_string, add_charset=''):
+def fix_french_conversion_fails(input_string, add_charset=""):
     """
     Fix text conversion failures using EncodingFixer.
 
@@ -121,7 +143,7 @@ def fix_french_conversion_fails(input_string, add_charset=''):
             s = s.replace(src, dst)
 
     # Normalize spaces
-    s = re.sub(r'\s+', ' ', s).strip()
+    s = re.sub(r"\s+", " ", s).strip()
 
     return s
 
@@ -163,49 +185,47 @@ def reduce_letters_french(input_string, strength):
     level = max(0, min(level, 3))
 
     if level == 0:
-        import unicodedata
-        return ''.join(ch for ch in unicodedata.normalize('NFD', input_string) if not unicodedata.combining(ch))
+        return "".join(ch for ch in unicodedata.normalize("NFD", input_string) if not unicodedata.combining(ch))
 
     def detect_style(s: str) -> str:
         if s.islower():
-            return 'lower'
+            return "lower"
         if s.isupper():
-            return 'upper'
+            return "upper"
         if s.istitle():
-            return 'title'
-        return 'mixed'
+            return "title"
+        return "mixed"
 
     orig_style = detect_style(input_string)
 
-    import unicodedata
     def remove_accents(s: str) -> str:
-        return ''.join(ch for ch in unicodedata.normalize('NFD', s) if not unicodedata.combining(ch))
+        return "".join(ch for ch in unicodedata.normalize("NFD", s) if not unicodedata.combining(ch))
 
     oparse = remove_accents(input_string).upper()
 
     # NIVEAU 1 : Réductions phonétiques basiques du français
     if level >= 1:
         replacements_level_1 = [
-            ('OU', 'U'),    # OU -> U (son /u/: ou, nous, tout)
-            ('AU', 'O'),    # AU -> O (son /o/: au, beau, chaud)
-            ('EAU', 'O'),   # EAU -> O (son /o/: beau, château)
-            ('PH', 'F'),    # PH -> F (philosophie -> filosofie)
-            ('QU', 'K'),    # QU -> K (que -> ke)
-            ('GU', 'G'),    # GU -> G (guerre -> gere)
-            ('CH', 'S'),    # CH -> S (son /ʃ/: chat, cher)
-            ('GN', 'NI'),   # GN -> NI (son /ɲ/: campagne -> campanie)
-            ('OI', 'OA'),   # OI -> OA (son /wa/: roi -> roa)
-            ('AI', 'E'),    # AI -> E (son /ɛ/: maison -> meson)
-            ('EI', 'E'),    # EI -> E (son /ɛ/: reine -> rene)
+            ("OU", "U"),  # OU -> U (son /u/: ou, nous, tout)
+            ("AU", "O"),  # AU -> O (son /o/: au, beau, chaud)
+            ("EAU", "O"),  # EAU -> O (son /o/: beau, château)
+            ("PH", "F"),  # PH -> F (philosophie -> filosofie)
+            ("QU", "K"),  # QU -> K (que -> ke)
+            ("GU", "G"),  # GU -> G (guerre -> gere)
+            ("CH", "S"),  # CH -> S (son /ʃ/: chat, cher)
+            ("GN", "NI"),  # GN -> NI (son /ɲ/: campagne -> campanie)
+            ("OI", "OA"),  # OI -> OA (son /wa/: roi -> roa)
+            ("AI", "E"),  # AI -> E (son /ɛ/: maison -> meson)
+            ("EI", "E"),  # EI -> E (son /ɛ/: reine -> rene)
         ]
         for src, dst in replacements_level_1:
             oparse = oparse.replace(src, dst)
 
         single_level_1 = [
-            ('H', ''),      # H est muet en français (hôtel, homme)
-            ('Y', 'I'),     # Y -> I (bicycle -> bicisle)
-            ('K', 'C'),     # K -> C (kilo -> cilo)
-            ('W', 'V'),     # W -> V (Wagner -> Vagner)
+            ("H", ""),  # H est muet en français (hôtel, homme)
+            ("Y", "I"),  # Y -> I (bicycle -> bicisle)
+            ("K", "C"),  # K -> C (kilo -> cilo)
+            ("W", "V"),  # W -> V (Wagner -> Vagner)
         ]
         for src, dst in single_level_1:
             oparse = oparse.replace(src, dst)
@@ -213,17 +233,17 @@ def reduce_letters_french(input_string, strength):
     # NIVEAU 2 : Réductions intermédiaires (sibilantes et nasales)
     if level >= 2:
         replacements_level_2 = [
-            ('AN', 'EN'),   # AN/EN nasale unifiée
-            ('AM', 'EM'),   # AM/EM nasale unifiée
-            ('IN', 'EN'),   # IN unifier avec EN
-            ('IM', 'EM'),   # IM unifier avec EM
-            ('ON', 'EN'),   # ON unifier avec EN (agressif)
-            ('SS', 'S'),    # SS -> S (poisson -> poison... simplification)
-            ('SC', 'S'),    # SC -> S (ante e/i: science -> sience)
-            ('Ç', 'S'),     # Ç -> S (français -> francais via S)
-            ('C', 'S'),     # C -> S (ante e/i)
-            ('X', 'S'),     # X -> S en fin de mot (voix -> vois)
-            ('Z', 'S'),     # Z -> S (nez -> nes)
+            ("AN", "EN"),  # AN/EN nasale unifiée
+            ("AM", "EM"),  # AM/EM nasale unifiée
+            ("IN", "EN"),  # IN unifier avec EN
+            ("IM", "EM"),  # IM unifier avec EM
+            ("ON", "EN"),  # ON unifier avec EN (agressif)
+            ("SS", "S"),  # SS -> S (poisson -> poison... simplification)
+            ("SC", "S"),  # SC -> S (ante e/i: science -> sience)
+            ("Ç", "S"),  # Ç -> S (français -> francais via S)
+            ("C", "S"),  # C -> S (ante e/i)
+            ("X", "S"),  # X -> S en fin de mot (voix -> vois)
+            ("Z", "S"),  # Z -> S (nez -> nes)
         ]
         for src, dst in replacements_level_2:
             oparse = oparse.replace(src, dst)
@@ -231,23 +251,23 @@ def reduce_letters_french(input_string, strength):
     # NIVEAU 3 : Réductions agressives (normalisation internationale)
     if level >= 3:
         replacements_level_3 = [
-            ('TH', 'T'),    # TH -> T (théâtre -> teatre)
-            ('Œ', 'E'),     # Œ -> E (cœur -> ceur)
-            ('Æ', 'E'),     # Æ -> E
-            ('Q', 'K'),     # Q -> K (sans QU)
-            ('D', 'T'),     # D -> T (fin de mot)
-            ('P', 'B'),     # P/B
-            ('T', 'D'),     # T -> D
-            ('F', 'V'),     # F -> V
+            ("TH", "T"),  # TH -> T (théâtre -> teatre)
+            ("Œ", "E"),  # Œ -> E (cœur -> ceur)
+            ("Æ", "E"),  # Æ -> E
+            ("Q", "K"),  # Q -> K (sans QU)
+            ("D", "T"),  # D -> T (fin de mot)
+            ("P", "B"),  # P/B
+            ("T", "D"),  # T -> D
+            ("F", "V"),  # F -> V
         ]
         for src, dst in replacements_level_3:
             oparse = oparse.replace(src, dst)
 
-    if orig_style == 'lower':
+    if orig_style == "lower":
         return oparse.lower()
-    if orig_style == 'title':
+    if orig_style == "title":
         return oparse.title()
-    if orig_style == 'mixed':
+    if orig_style == "mixed":
         return oparse.lower()
     return oparse
 

@@ -90,33 +90,38 @@ class EncodingFixer:
     # frequency in real-world Western-European data.
     # Each tuple is (encoding_that_was_used_to_read, actual_encoding).
     _ENCODING_PAIRS: List[Tuple[str, str]] = [
-        ('cp1252', 'utf-8'),         # UTF-8 opened as Windows-1252
-        ('latin-1', 'utf-8'),        # UTF-8 opened as ISO-8859-1
-        ('iso-8859-15', 'utf-8'),    # UTF-8 opened as Latin-9
-        ('cp850', 'utf-8'),          # UTF-8 opened as DOS OEM West
-        ('cp437', 'utf-8'),          # UTF-8 opened as DOS US
+        ("cp1252", "utf-8"),  # UTF-8 opened as Windows-1252
+        ("latin-1", "utf-8"),  # UTF-8 opened as ISO-8859-1
+        ("iso-8859-15", "utf-8"),  # UTF-8 opened as Latin-9
+        ("cp850", "utf-8"),  # UTF-8 opened as DOS OEM West
+        ("cp437", "utf-8"),  # UTF-8 opened as DOS US
     ]
 
     # Typographic → ASCII normalisation (only applied when requested).
     _TYPOGRAPHIC_MAP: Dict[str, str] = {
-        '\u2018': "'", '\u2019': "'",    # curly single quotes → '
-        '\u201a': "'",                    # single low-9 quote  → '
-        '\u201c': '"', '\u201d': '"',    # curly double quotes → "
-        '\u201e': '"',                    # double low-9 quote  → "
-        '\u2013': '-', '\u2014': '-',    # en/em-dash → -
-        '\u2026': '...',                  # ellipsis → ...
-        '\u00ab': '"', '\u00bb': '"',    # guillemets → "
-        '`': "'", '\u00b4': "'",         # backtick / acute → '
+        "\u2018": "'",
+        "\u2019": "'",  # curly single quotes → '
+        "\u201a": "'",  # single low-9 quote  → '
+        "\u201c": '"',
+        "\u201d": '"',  # curly double quotes → "
+        "\u201e": '"',  # double low-9 quote  → "
+        "\u2013": "-",
+        "\u2014": "-",  # en/em-dash → -
+        "\u2026": "...",  # ellipsis → ...
+        "\u00ab": '"',
+        "\u00bb": '"',  # guillemets → "
+        "`": "'",
+        "\u00b4": "'",  # backtick / acute → '
     }
 
     # Expected special characters per language (used for scoring).
     _LANG_CHARS: Dict[str, str] = {
-        'es': 'áéíóúñÁÉÍÓÚÑüÜ¿¡',
-        'en': '',
-        'pt': 'áéíóúàâêôãõçÁÉÍÓÚÀÂÊÔÃÕÇ',
-        'fr': 'àâäæçéèêëîïôöùûüÿœÀÂÄÆÇÉÈÊËÎÏÔÖÙÛÜŸŒ',
-        'de': 'äöüÄÖÜß',
-        'it': 'àèéìíòóùúÀÈÉÌÍÒÓÙÚ',
+        "es": "áéíóúñÁÉÍÓÚÑüÜ¿¡",
+        "en": "",
+        "pt": "áéíóúàâêôãõçÁÉÍÓÚÀÂÊÔÃÕÇ",
+        "fr": "àâäæçéèêëîïôöùûüÿœÀÂÄÆÇÉÈÊËÎÏÔÖÙÛÜŸŒ",
+        "de": "äöüÄÖÜß",
+        "it": "àèéìíòóùúÀÈÉÌÍÒÓÙÚ",
     }
 
     # ------------------------------------------------------------------
@@ -142,14 +147,8 @@ class EncodingFixer:
                 key=len,
                 reverse=True,
             )
-            escaped = [
-                re.escape(k)
-                for k in EncodingFixer._SORTED_KEYS
-                if len(k) >= 2
-            ]
-            EncodingFixer._MOJIBAKE_RE = (
-                re.compile('|'.join(escaped)) if escaped else None
-            )
+            escaped = [re.escape(k) for k in EncodingFixer._SORTED_KEYS if len(k) >= 2]
+            EncodingFixer._MOJIBAKE_RE = re.compile("|".join(escaped)) if escaped else None
 
     # ------------------------------------------------------------------
     # Map generation (runs once)
@@ -182,33 +181,33 @@ class EncodingFixer:
 
         # --- Layer 1: CP1252 gap (C1 control chars → real chars) ------
         _cp1252_gap = {
-            0x80: '\u20ac',  # €
-            0x82: '\u201a',  # ‚
-            0x83: '\u0192',  # ƒ
-            0x84: '\u201e',  # „
-            0x85: '\u2026',  # …
-            0x86: '\u2020',  # †
-            0x87: '\u2021',  # ‡
-            0x88: '\u02c6',  # ˆ
-            0x89: '\u2030',  # ‰
-            0x8a: '\u0160',  # Š
-            0x8b: '\u2039',  # ‹
-            0x8c: '\u0152',  # Œ
-            0x8e: '\u017d',  # Ž
-            0x91: '\u2018',  # '
-            0x92: '\u2019',  # '
-            0x93: '\u201c',  # "
-            0x94: '\u201d',  # "
-            0x95: '\u2022',  # •
-            0x96: '\u2013',  # –
-            0x97: '\u2014',  # —
-            0x98: '\u02dc',  # ˜
-            0x99: '\u2122',  # ™
-            0x9a: '\u0161',  # š
-            0x9b: '\u203a',  # ›
-            0x9c: '\u0153',  # œ
-            0x9e: '\u017e',  # ž
-            0x9f: '\u0178',  # Ÿ
+            0x80: "\u20ac",  # €
+            0x82: "\u201a",  # ‚
+            0x83: "\u0192",  # ƒ
+            0x84: "\u201e",  # „
+            0x85: "\u2026",  # …
+            0x86: "\u2020",  # †
+            0x87: "\u2021",  # ‡
+            0x88: "\u02c6",  # ˆ
+            0x89: "\u2030",  # ‰
+            0x8A: "\u0160",  # Š
+            0x8B: "\u2039",  # ‹
+            0x8C: "\u0152",  # Œ
+            0x8E: "\u017d",  # Ž
+            0x91: "\u2018",  # '
+            0x92: "\u2019",  # '
+            0x93: "\u201c",  # "
+            0x94: "\u201d",  # "
+            0x95: "\u2022",  # •
+            0x96: "\u2013",  # –
+            0x97: "\u2014",  # —
+            0x98: "\u02dc",  # ˜
+            0x99: "\u2122",  # ™
+            0x9A: "\u0161",  # š
+            0x9B: "\u203a",  # ›
+            0x9C: "\u0153",  # œ
+            0x9E: "\u017e",  # ž
+            0x9F: "\u0178",  # Ÿ
         }
         for byte_val, char in _cp1252_gap.items():
             result[chr(byte_val)] = char
@@ -217,13 +216,13 @@ class EncodingFixer:
         _CP1252_UNDEFINED = {0x81, 0x8D, 0x8F, 0x90, 0x9D}
         for codepoint in range(0x80, 0x100):
             original = chr(codepoint)
-            utf8_bytes = original.encode('utf-8')
-            for codec in ('cp1252', 'latin-1'):
+            utf8_bytes = original.encode("utf-8")
+            for codec in ("cp1252", "latin-1"):
                 try:
                     garbled = utf8_bytes.decode(codec)
                 except (UnicodeDecodeError, UnicodeEncodeError):
                     # Byte is undefined in this codec — build key manually
-                    if codec == 'cp1252' and any(b in _CP1252_UNDEFINED for b in utf8_bytes):
+                    if codec == "cp1252" and any(b in _CP1252_UNDEFINED for b in utf8_bytes):
                         key_chars = []
                         for bv in utf8_bytes:
                             if bv in _cp1252_gap:
@@ -236,7 +235,7 @@ class EncodingFixer:
                                 except (UnicodeDecodeError, ValueError):
                                     break
                         else:
-                            garbled = ''.join(key_chars)
+                            garbled = "".join(key_chars)
                             if garbled != original and len(garbled) > 1:
                                 result.setdefault(garbled, original)
                     continue
@@ -246,16 +245,16 @@ class EncodingFixer:
         # --- Layer 3: Multi-byte UTF-8 misread as CP1252/Latin-1 ------
         _multibyte_chars = (
             # Typographic punctuation
-            '\u2013\u2014\u2018\u2019\u201a\u201c\u201d\u201e'
-            '\u2022\u2026\u2030\u2039\u203a\u20ac\u2122'
+            "\u2013\u2014\u2018\u2019\u201a\u201c\u201d\u201e"
+            "\u2022\u2026\u2030\u2039\u203a\u20ac\u2122"
             # Latin Extended-A (European names)
-            '\u0152\u0153\u0160\u0161\u017d\u017e\u0178\u0192'
+            "\u0152\u0153\u0160\u0161\u017d\u017e\u0178\u0192"
             # Modifier letters
-            '\u02c6\u02dc'
+            "\u02c6\u02dc"
         )
         for char in _multibyte_chars:
-            utf8_bytes = char.encode('utf-8')
-            for codec in ('cp1252', 'latin-1'):
+            utf8_bytes = char.encode("utf-8")
+            for codec in ("cp1252", "latin-1"):
                 try:
                     garbled = utf8_bytes.decode(codec)
                 except (UnicodeDecodeError, UnicodeEncodeError):
@@ -274,7 +273,7 @@ class EncodingFixer:
         # by building the key byte-by-byte.
         # (_CP1252_UNDEFINED already defined in Layer 2)
         for char in _multibyte_chars:
-            utf8_bytes = char.encode('utf-8')
+            utf8_bytes = char.encode("utf-8")
             if not any(b in _CP1252_UNDEFINED for b in utf8_bytes):
                 continue
             # Build the garbled key byte-by-byte using CP1252 mapping
@@ -290,27 +289,27 @@ class EncodingFixer:
                 else:
                     # Map through CP1252 single-byte
                     try:
-                        key_chars.append(bytes([byte_val]).decode('cp1252'))
+                        key_chars.append(bytes([byte_val]).decode("cp1252"))
                     except (UnicodeDecodeError, ValueError):
                         break
             else:
-                garbled = ''.join(key_chars)
+                garbled = "".join(key_chars)
                 if garbled != char and len(garbled) > 1:
                     result.setdefault(garbled, char)
 
         # --- BOM removal (UTF-8 BOM read as CP1252 = ï»¿) ------------
-        bom_bytes = '\ufeff'.encode('utf-8')
-        for codec in ('cp1252', 'latin-1'):
+        bom_bytes = "\ufeff".encode("utf-8")
+        for codec in ("cp1252", "latin-1"):
             try:
                 garbled_bom = bom_bytes.decode(codec)
-                result[garbled_bom] = ''
+                result[garbled_bom] = ""
             except (UnicodeDecodeError, UnicodeEncodeError):
                 pass
-        result['\ufeff'] = ''  # also remove real BOM if present
+        result["\ufeff"] = ""  # also remove real BOM if present
 
         # --- Line endings ---------------------------------------------
-        result['\r\n'] = '\n'
-        result['\r'] = '\n'
+        result["\r\n"] = "\n"
+        result["\r"] = "\n"
 
         return result
 
@@ -469,18 +468,15 @@ class EncodingFixer:
         """
         if not text:
             return {
-                'has_mojibake': False,
-                'likely_pair': None,
-                'sequences_found': [],
-                'score_original': 0.0,
-                'score_fixed': 0.0,
+                "has_mojibake": False,
+                "likely_pair": None,
+                "sequences_found": [],
+                "score_original": 0.0,
+                "score_fixed": 0.0,
             }
 
         # Find mojibake sequences in the text
-        found = [
-            k for k in self._SORTED_KEYS
-            if len(k) >= 2 and k in text
-        ]
+        found = [k for k in self._SORTED_KEYS if len(k) >= 2 and k in text]
 
         score_orig = self._score(text)
 
@@ -502,11 +498,11 @@ class EncodingFixer:
         score_fixed = self._score(fixed)
 
         return {
-            'has_mojibake': bool(found) or best_pair is not None,
-            'likely_pair': best_pair,
-            'sequences_found': found[:20],
-            'score_original': round(score_orig, 3),
-            'score_fixed': round(score_fixed, 3),
+            "has_mojibake": bool(found) or best_pair is not None,
+            "likely_pair": best_pair,
+            "sequences_found": found[:20],
+            "score_original": round(score_orig, 3),
+            "score_fixed": round(score_fixed, 3),
         }
 
     # ------------------------------------------------------------------
@@ -521,7 +517,7 @@ class EncodingFixer:
         that were not caught by the pattern map but could still be part
         of a garbled UTF-8 sequence recoverable via full re-decode.
         """
-        return any(0x80 <= ord(ch) <= 0x9f for ch in text)
+        return any(0x80 <= ord(ch) <= 0x9F for ch in text)
 
     def _apply_pattern_map(self, text: str) -> str:
         """Replace known mojibake sequences using the pre-built map.
@@ -582,26 +578,23 @@ class EncodingFixer:
             return 0.0
 
         score = 0.0
-        lang_chars = (
-            self._LANG_CHARS.get(self._language, '')
-            if self._language else ''
-        )
+        lang_chars = self._LANG_CHARS.get(self._language, "") if self._language else ""
 
         for ch in text:
             cat = unicodedata.category(ch)
-            if cat.startswith('L'):
+            if cat.startswith("L"):
                 score += 2
                 if lang_chars and ch in lang_chars:
                     score += 0.5
-            elif cat == 'Nd':
+            elif cat == "Nd":
                 score += 2
-            elif cat == 'Zs':
+            elif cat == "Zs":
                 score += 0.5
-            elif cat.startswith('P'):
+            elif cat.startswith("P"):
                 score += 1
-            elif cat.startswith('S'):
+            elif cat.startswith("S"):
                 score += 0.5
-            elif cat.startswith('C') or cat in ('Co', 'Cn'):
+            elif cat.startswith("C") or cat in ("Co", "Cn"):
                 score -= 5
             else:
                 score += 0.5
@@ -621,17 +614,17 @@ class EncodingFixer:
         result = []
         for ch in text:
             cp = ord(ch)
-            if ch in '\t\n\r':
+            if ch in "\t\n\r":
                 result.append(ch)
-            elif cp <= 0x1f:        # C0 range (except tab/nl/cr)
+            elif cp <= 0x1F:  # C0 range (except tab/nl/cr)
                 continue
-            elif cp == 0x7f:        # DEL
+            elif cp == 0x7F:  # DEL
                 continue
-            elif 0x80 <= cp <= 0x9f:  # C1 range
+            elif 0x80 <= cp <= 0x9F:  # C1 range
                 continue
             else:
                 result.append(ch)
-        return ''.join(result)
+        return "".join(result)
 
     # ------------------------------------------------------------------
     # Properties
@@ -650,6 +643,7 @@ class EncodingFixer:
 # ----------------------------------------------------------------------
 # Module-level convenience function
 # ----------------------------------------------------------------------
+
 
 def fix_encoding(
     text: str,
@@ -676,6 +670,4 @@ def fix_encoding(
         >>> fix_encoding("espaÃ±ol", language='es')
         'español'
     """
-    return EncodingFixer(language=language).fix(
-        text, normalize_quotes=normalize_quotes
-    )
+    return EncodingFixer(language=language).fix(text, normalize_quotes=normalize_quotes)

@@ -1,39 +1,86 @@
+import re
+import unicodedata
+from typing import Optional
+
+from .encoding_fixer import EncodingFixer
+
 # Listas de palabras para operaciones categorizadas gramaticalmente:
 # Listado de join de palabras en español, se pueden omitir en ciertos procesos de análisis de texto.
 # Se mantiene en mayúsculas para comparaciones normalizadas.
 
 # Prefijos y partículas en nombres propios
-_NAME_PREFIXES = ['SAN', 'SANTA', 'VAN', 'VON', 'DER', 'DEN', 'DA', 'DELLA', 'MC', 'MAC', 'IBN']
+_NAME_PREFIXES = ["SAN", "SANTA", "VAN", "VON", "DER", "DEN", "DA", "DELLA", "MC", "MAC", "IBN"]
 
 # Adverbios comunes/conectores
-_ADVERBS = ['YA', 'AUN', 'TAMBIEN', 'ASI', 'AHORA']
+_ADVERBS = ["YA", "AUN", "TAMBIEN", "ASI", "AHORA"]
 
 # Pronombres personales y objetos
-_PRONOUNS = ['YO', 'TU', 'TÚ', 'USTED', 'USTEDES', 'ELLOS', 'ELLAS', 'ME', 'TE', 'SE', 'NOS', 'OS', 'LE', 'LES', 'LO', 'LA']
+_PRONOUNS = ["YO", "TU", "TÚ", "USTED", "USTEDES", "ELLOS", "ELLAS", "ME", "TE", "SE", "NOS", "OS", "LE", "LES", "LO", "LA"]
 
 # Determinantes (incluye demostrativos/posesivos simples si se desea extender)
-_DETERMINANTS = ['ESTE', 'ESTA', 'ESTOS', 'ESTAS', 'ESE', 'ESA', 'ESOS', 'ESAS', 'MI', 'MIS', 'TU', 'TUS']
+_DETERMINANTS = ["ESTE", "ESTA", "ESTOS", "ESTAS", "ESE", "ESA", "ESOS", "ESAS", "MI", "MIS", "TU", "TUS"]
 
 # Artículos
-_ARTICLES = ['EL', 'LA', 'LOS', 'LAS', 'UN', 'UNA', 'UNOS', 'UNAS']
+_ARTICLES = ["EL", "LA", "LOS", "LAS", "UN", "UNA", "UNOS", "UNAS"]
 
 # Preposiciones
-_PREPOSITIONS = ['A', 'AL', 'ANTE', 'BAJO', 'CON', 'CONTRA', 'DE', 'DEL', 'DESDE', 'EN', 'ENTRE', 'HACIA', 'HASTA', 'MEDIANTE', 'PARA', 'POR', 'SIN', 'SOBRE', 'TRAS', 'SEGUN', 'VERSUS']
+_PREPOSITIONS = [
+    "A",
+    "AL",
+    "ANTE",
+    "BAJO",
+    "CON",
+    "CONTRA",
+    "DE",
+    "DEL",
+    "DESDE",
+    "EN",
+    "ENTRE",
+    "HACIA",
+    "HASTA",
+    "MEDIANTE",
+    "PARA",
+    "POR",
+    "SIN",
+    "SOBRE",
+    "TRAS",
+    "SEGUN",
+    "VERSUS",
+]
 
 # Conjunciones
-_CONJUNCTIONS = ['Y', 'E', 'NI', 'O', 'U', 'QUE', 'PORQUE', 'PERO', 'SINO', 'MAS', 'TAMBIEN']
+_CONJUNCTIONS = ["Y", "E", "NI", "O", "U", "QUE", "PORQUE", "PERO", "SINO", "MAS", "TAMBIEN"]
 
 # Listado de palabras para omitir en ciertos procesos de análisis de texto.
 _SKIP_WORDS_MAP = [
-    'Y', 'O', 'U', 'E', 'A',
-    'AN', 'AL', 'AS', 'AR', 'DE', 'LA', 'EL', 'LO', 'LE', 'OS', 'DI', 'SI',
-    'NOS', 'LES', 'LAS', 'LOS', 'DEL', 'SAN', 'VAN', 'DER', 'DEN', 'VON'
+    "Y",
+    "O",
+    "U",
+    "E",
+    "A",
+    "AN",
+    "AL",
+    "AS",
+    "AR",
+    "DE",
+    "LA",
+    "EL",
+    "LO",
+    "LE",
+    "OS",
+    "DI",
+    "SI",
+    "NOS",
+    "LES",
+    "LAS",
+    "LOS",
+    "DEL",
+    "SAN",
+    "VAN",
+    "DER",
+    "DEN",
+    "VON",
 ]
-
-
-import re
-from typing import Optional
-from .encoding_fixer import EncodingFixer
 
 
 # Precompile a regex for words to remove (articles, prepositions, conjunctions).
@@ -83,25 +130,25 @@ def remove_spanish_articles(input_string: Optional[str]) -> Optional[str]:
             return input_string
 
     # Usar el patrón precompilado para eliminar palabras objetivo
-    cleaned = _REMOVE_WORDS_PATTERN.sub('', input_string)
+    cleaned = _REMOVE_WORDS_PATTERN.sub("", input_string)
 
     # Normalizar espacios sobrantes y devolver
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
 
     return cleaned
 
 
 # Module-level EncodingFixer instance (map is built once, shared across calls)
-_ENCODING_FIXER_ES = EncodingFixer(language='es')
+_ENCODING_FIXER_ES = EncodingFixer(language="es")
 
 # Legacy pre-processing: codepage conventions that are NOT mojibake
 _LEGACY_MAP_ES = {
-    "§": "º",   # section sign → masculine ordinal
-    "¥": "Ñ",   # yen sign → Ñ (CP437/CP850 convention)
+    "§": "º",  # section sign → masculine ordinal
+    "¥": "Ñ",  # yen sign → Ñ (CP437/CP850 convention)
 }
 
 
-def fix_spanish_conversion_fails(input_string, add_charset=''):
+def fix_spanish_conversion_fails(input_string, add_charset=""):
     """
     Fix text conversion failures using EncodingFixer.
 
@@ -134,7 +181,7 @@ def fix_spanish_conversion_fails(input_string, add_charset=''):
             s = s.replace(src, dst)
 
     # Normalize spaces
-    s = re.sub(r'\s+', ' ', s).strip()
+    s = re.sub(r"\s+", " ", s).strip()
 
     return s
 
@@ -189,26 +236,24 @@ def reduce_letters_spanish(input_string, strength):
 
     # Si level es 0, solo normalizar acentos y devolver
     if level == 0:
-        import unicodedata
-        result = ''.join(ch for ch in unicodedata.normalize('NFD', input_string) if not unicodedata.combining(ch))
+        result = "".join(ch for ch in unicodedata.normalize("NFD", input_string) if not unicodedata.combining(ch))
         return result
 
     # Detectar estilo de capitalización para restaurarlo al final
     def detect_style(s: str) -> str:
         if s.islower():
-            return 'lower'
+            return "lower"
         if s.isupper():
-            return 'upper'
+            return "upper"
         if s.istitle():
-            return 'title'
-        return 'mixed'
+            return "title"
+        return "mixed"
 
     orig_style = detect_style(input_string)
 
     # Quitar acentos de manera segura (pero mantener caracteres base)
-    import unicodedata
     def remove_accents(s: str) -> str:
-        return ''.join(ch for ch in unicodedata.normalize('NFD', s) if not unicodedata.combining(ch))
+        return "".join(ch for ch in unicodedata.normalize("NFD", s) if not unicodedata.combining(ch))
 
     oparse = remove_accents(input_string).upper()
 
@@ -220,28 +265,28 @@ def reduce_letters_spanish(input_string, strength):
         # Orden importante: procesar secuencias multi-carácter primero
         replacements_level_1 = [
             # Digrafos y secuencias especiales
-            ('RR', 'R'),   # doble R suena igual que R inicial
-            ('QU', 'C'),   # QUE, QUI -> CE, CI (mismo sonido /k/ o /ke/)
-            ('GÜ', 'G'),   # GÜE, GÜI -> GE, GI (con diéresis)
-            ('GU', 'G'),   # GUE, GUI -> GE, GI (sonido /g/)
-            ('LL', 'Y'),   # LL y Y suenan igual en la mayoría de dialectos (yeísmo)
-            ('CH', 'C'),   # CH -> C (simplificación de dígrafo)
+            ("RR", "R"),  # doble R suena igual que R inicial
+            ("QU", "C"),  # QUE, QUI -> CE, CI (mismo sonido /k/ o /ke/)
+            ("GÜ", "G"),  # GÜE, GÜI -> GE, GI (con diéresis)
+            ("GU", "G"),  # GUE, GUI -> GE, GI (sonido /g/)
+            ("LL", "Y"),  # LL y Y suenan igual en la mayoría de dialectos (yeísmo)
+            ("CH", "C"),  # CH -> C (simplificación de dígrafo)
             # Combinaciones nasales
-            ('MB', 'M'),   # MB -> M (asimilación nasal: "cambio" ~ "camio")
-            ('NV', 'M'),   # NV -> M (asimilación: "enviar" ~ "emiar")
-            ('NM', 'M'),   # NM -> M (asimilación: "inmenso" ~ "imenso")
+            ("MB", "M"),  # MB -> M (asimilación nasal: "cambio" ~ "camio")
+            ("NV", "M"),  # NV -> M (asimilación: "enviar" ~ "emiar")
+            ("NM", "M"),  # NM -> M (asimilación: "inmenso" ~ "imenso")
         ]
         for src, dst in replacements_level_1:
             oparse = oparse.replace(src, dst)
 
         # Reemplazos de letra simple (homófonos y consonantes mudas)
         single_level_1 = [
-            ('H', ''),     # H es muda en español
-            ('Y', 'I'),    # Y e I son homófonos en muchas posiciones
-            ('Z', 'C'),    # Z y C (ante e/i) suenan igual /θ/ o /s/ (seseo)
-            ('K', 'C'),    # K suena como C
-            ('B', 'V'),    # B y V son homófonos en español moderno
-            ('G', 'J'),    # G (ante e/i) suena como J
+            ("H", ""),  # H es muda en español
+            ("Y", "I"),  # Y e I son homófonos en muchas posiciones
+            ("Z", "C"),  # Z y C (ante e/i) suenan igual /θ/ o /s/ (seseo)
+            ("K", "C"),  # K suena como C
+            ("B", "V"),  # B y V son homófonos en español moderno
+            ("G", "J"),  # G (ante e/i) suena como J
         ]
         for src, dst in single_level_1:
             oparse = oparse.replace(src, dst)
@@ -252,15 +297,15 @@ def reduce_letters_spanish(input_string, strength):
     if level >= 2:
         replacements_level_2 = [
             # Unificación de sibilantes (todas a S)
-            ('X', 'S'),    # X suena como S o KS, normalizamos a S
-            ('C', 'S'),    # Unifica C con S (seseo generalizado)
+            ("X", "S"),  # X suena como S o KS, normalizamos a S
+            ("C", "S"),  # Unifica C con S (seseo generalizado)
             # Simplificación de grupos consonánticos
-            ('PS', 'S'),   # PS -> S ("psicología" ~ "sicología")
-            ('PT', 'T'),   # PT -> T ("septiembre" ~ "setiembre")
-            ('CT', 'T'),   # CT -> T ("actor" ~ "ator")
-            ('GN', 'N'),   # GN -> N ("gnomo" ~ "nomo")
-            ('MN', 'N'),   # MN -> N ("himno" ~ "hino")
-            ('TL', 'L'),   # TL -> L (México: "atleta" ~ "aleta")
+            ("PS", "S"),  # PS -> S ("psicología" ~ "sicología")
+            ("PT", "T"),  # PT -> T ("septiembre" ~ "setiembre")
+            ("CT", "T"),  # CT -> T ("actor" ~ "ator")
+            ("GN", "N"),  # GN -> N ("gnomo" ~ "nomo")
+            ("MN", "N"),  # MN -> N ("himno" ~ "hino")
+            ("TL", "L"),  # TL -> L (México: "atleta" ~ "aleta")
             # Líquidas (L/R pueden confundirse en algunos dialectos)
             # No aplicamos L->R por defecto en nivel 2 para mantener distinción
         ]
@@ -274,31 +319,31 @@ def reduce_letters_spanish(input_string, strength):
     if level >= 3:
         replacements_level_3 = [
             # Normalización de caracteres específicos
-            ('Ñ', 'N'),    # Ñ -> N (normalización internacional)
-            ('Ç', 'S'),    # Ç -> S (catalán/francés)
-            ('W', 'V'),    # W -> V (adaptación española)
-            ('Q', 'K'),    # Q -> K (ya no hay QU después de nivel 1)
+            ("Ñ", "N"),  # Ñ -> N (normalización internacional)
+            ("Ç", "S"),  # Ç -> S (catalán/francés)
+            ("W", "V"),  # W -> V (adaptación española)
+            ("Q", "K"),  # Q -> K (ya no hay QU después de nivel 1)
             # Simplificación extrema de grupos
-            ('PH', 'F'),   # PH -> F (filosofía)
-            ('TH', 'T'),   # TH -> T (anglicismos)
-            ('SCH', 'S'),  # SCH -> S (germanismos)
+            ("PH", "F"),  # PH -> F (filosofía)
+            ("TH", "T"),  # TH -> T (anglicismos)
+            ("SCH", "S"),  # SCH -> S (germanismos)
             # Líquidas intercambiables (dialectal)
-            ('L', 'R'),    # L y R se confunden en algunos dialectos caribeños
+            ("L", "R"),  # L y R se confunden en algunos dialectos caribeños
             # Fricativas finales
-            ('D', 'T'),    # D final se pronuncia como T o se elide ("verdad" ~ "verdá/verdat")
-            ('P', 'B'),    # P y B también pueden alternar
-            ('T', 'D'),    # T intervocálica se vocaliza
-            ('F', 'J'),    # F puede aspirarse como J en algunos dialectos
+            ("D", "T"),  # D final se pronuncia como T o se elide ("verdad" ~ "verdá/verdat")
+            ("P", "B"),  # P y B también pueden alternar
+            ("T", "D"),  # T intervocálica se vocaliza
+            ("F", "J"),  # F puede aspirarse como J en algunos dialectos
         ]
         for src, dst in replacements_level_3:
             oparse = oparse.replace(src, dst)
 
     # Restaurar estilo de capitalización del original
-    if orig_style == 'lower':
+    if orig_style == "lower":
         return oparse.lower()
-    if orig_style == 'title':
+    if orig_style == "title":
         return oparse.title()
-    if orig_style == 'mixed':
+    if orig_style == "mixed":
         return oparse.lower()
     # 'upper'
     return oparse
@@ -342,4 +387,3 @@ def raw_string_spanish(input_string, accuracy):
     reduced = reduce_letters_spanish(cleaned, accuracy)
 
     return reduced
-

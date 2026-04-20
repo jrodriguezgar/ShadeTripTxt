@@ -1,39 +1,107 @@
+import re
+import unicodedata
+from typing import Optional
+
+from .encoding_fixer import EncodingFixer
+
 # Wortlisten für grammatisch kategorisierte Operationen:
 # Liste von Bindeswörtern auf Deutsch, die in bestimmten Textanalyseprozessen ausgelassen werden können.
 # In Großbuchstaben für normalisierte Vergleiche.
 
 # Präfixe und Partikel in Eigennamen
-_NAME_PREFIXES = ['VON', 'VOM', 'ZU', 'ZUM', 'ZUR', 'VAN', 'DER', 'DEN', 'MC', 'MAC']
+_NAME_PREFIXES = ["VON", "VOM", "ZU", "ZUM", "ZUR", "VAN", "DER", "DEN", "MC", "MAC"]
 
 # Häufige Adverbien/Konnektoren
-_ADVERBS = ['SCHON', 'NOCH', 'AUCH', 'SO', 'JETZT']
+_ADVERBS = ["SCHON", "NOCH", "AUCH", "SO", "JETZT"]
 
 # Personalpronomen und Objekte
-_PRONOUNS = ['ICH', 'DU', 'ER', 'SIE', 'ES', 'WIR', 'IHR', 'MICH', 'DICH', 'SICH', 'UNS', 'EUCH', 'MIR', 'DIR', 'IHM', 'IHNEN']
+_PRONOUNS = ["ICH", "DU", "ER", "SIE", "ES", "WIR", "IHR", "MICH", "DICH", "SICH", "UNS", "EUCH", "MIR", "DIR", "IHM", "IHNEN"]
 
 # Determinanten (Demonstrativa/Possessiva)
-_DETERMINANTS = ['DIESER', 'DIESE', 'DIESES', 'JENER', 'JENE', 'JENES', 'MEIN', 'MEINE', 'DEIN', 'DEINE', 'SEIN', 'SEINE', 'UNSER', 'UNSERE', 'EUER', 'EURE']
+_DETERMINANTS = [
+    "DIESER",
+    "DIESE",
+    "DIESES",
+    "JENER",
+    "JENE",
+    "JENES",
+    "MEIN",
+    "MEINE",
+    "DEIN",
+    "DEINE",
+    "SEIN",
+    "SEINE",
+    "UNSER",
+    "UNSERE",
+    "EUER",
+    "EURE",
+]
 
 # Artikel
-_ARTICLES = ['DER', 'DIE', 'DAS', 'DEN', 'DEM', 'DES', 'EIN', 'EINE', 'EINEM', 'EINEN', 'EINER', 'EINES']
+_ARTICLES = ["DER", "DIE", "DAS", "DEN", "DEM", "DES", "EIN", "EINE", "EINEM", "EINEN", "EINER", "EINES"]
 
 # Präpositionen
-_PREPOSITIONS = ['AN', 'AUF', 'AUS', 'BEI', 'BIS', 'DURCH', 'FÜR', 'GEGEN', 'HINTER', 'IN', 'IM', 'MIT', 'NACH', 'NEBEN', 'OHNE', 'SEIT', 'ÜBER', 'UM', 'UNTER', 'VOR', 'VON', 'VOM', 'WÄHREND', 'WEGEN', 'ZU', 'ZUM', 'ZUR', 'ZWISCHEN']
+_PREPOSITIONS = [
+    "AN",
+    "AUF",
+    "AUS",
+    "BEI",
+    "BIS",
+    "DURCH",
+    "FÜR",
+    "GEGEN",
+    "HINTER",
+    "IN",
+    "IM",
+    "MIT",
+    "NACH",
+    "NEBEN",
+    "OHNE",
+    "SEIT",
+    "ÜBER",
+    "UM",
+    "UNTER",
+    "VOR",
+    "VON",
+    "VOM",
+    "WÄHREND",
+    "WEGEN",
+    "ZU",
+    "ZUM",
+    "ZUR",
+    "ZWISCHEN",
+]
 
 # Konjunktionen
-_CONJUNCTIONS = ['UND', 'ODER', 'ABER', 'DENN', 'SONDERN', 'WEIL', 'DASS', 'WENN', 'ALS', 'OBWOHL', 'DAMIT', 'DOCH']
+_CONJUNCTIONS = ["UND", "ODER", "ABER", "DENN", "SONDERN", "WEIL", "DASS", "WENN", "ALS", "OBWOHL", "DAMIT", "DOCH"]
 
 # Liste von Wörtern, die in bestimmten Analyseprozessen übersprungen werden.
 _SKIP_WORDS_MAP = [
-    'UND', 'ODER', 'ABER', 'DER', 'DIE', 'DAS', 'DEN', 'DEM', 'DES',
-    'EIN', 'EINE', 'IN', 'IM', 'AN', 'AUF', 'VON', 'VOM', 'ZU', 'ZUM', 'ZUR',
-    'MIT', 'FÜR', 'BEI', 'AUS'
+    "UND",
+    "ODER",
+    "ABER",
+    "DER",
+    "DIE",
+    "DAS",
+    "DEN",
+    "DEM",
+    "DES",
+    "EIN",
+    "EINE",
+    "IN",
+    "IM",
+    "AN",
+    "AUF",
+    "VON",
+    "VOM",
+    "ZU",
+    "ZUM",
+    "ZUR",
+    "MIT",
+    "FÜR",
+    "BEI",
+    "AUS",
 ]
-
-
-import re
-from typing import Optional
-from .encoding_fixer import EncodingFixer
 
 
 # Precompile a regex for words to remove (articles, prepositions, conjunctions).
@@ -66,16 +134,16 @@ def remove_german_articles(input_string: Optional[str]) -> Optional[str]:
         except Exception:
             return input_string
 
-    cleaned = _REMOVE_WORDS_PATTERN.sub('', input_string)
-    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    cleaned = _REMOVE_WORDS_PATTERN.sub("", input_string)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
     return cleaned
 
 
 # Module-level EncodingFixer instance (map is built once, shared across calls)
-_ENCODING_FIXER_DE = EncodingFixer(language='de')
+_ENCODING_FIXER_DE = EncodingFixer(language="de")
 
 
-def fix_german_conversion_fails(input_string, add_charset=''):
+def fix_german_conversion_fails(input_string, add_charset=""):
     """
     Fix text conversion failures using EncodingFixer.
 
@@ -104,7 +172,7 @@ def fix_german_conversion_fails(input_string, add_charset=''):
     s = _ENCODING_FIXER_DE.fix(s)
 
     # Normalize spaces
-    s = re.sub(r'\s+', ' ', s).strip()
+    s = re.sub(r"\s+", " ", s).strip()
 
     return s
 
@@ -146,56 +214,56 @@ def reduce_letters_german(input_string, strength):
     level = max(0, min(level, 3))
 
     if level == 0:
-        import unicodedata
-        return ''.join(ch for ch in unicodedata.normalize('NFD', input_string) if not unicodedata.combining(ch))
+        return "".join(ch for ch in unicodedata.normalize("NFD", input_string) if not unicodedata.combining(ch))
 
     def detect_style(s: str) -> str:
         if s.islower():
-            return 'lower'
+            return "lower"
         if s.isupper():
-            return 'upper'
+            return "upper"
         if s.istitle():
-            return 'title'
-        return 'mixed'
+            return "title"
+        return "mixed"
 
     orig_style = detect_style(input_string)
 
     # First handle umlauts and ß BEFORE accent removal (they have specific expansions)
     s = input_string.upper()
     umlaut_map = [
-        ('Ä', 'AE'), ('Ö', 'OE'), ('Ü', 'UE'),
-        ('ß', 'SS'),
+        ("Ä", "AE"),
+        ("Ö", "OE"),
+        ("Ü", "UE"),
+        ("ß", "SS"),
     ]
     for src, dst in umlaut_map:
         s = s.replace(src, dst)
         s = s.replace(src.lower(), dst)
 
-    import unicodedata
     def remove_accents(text: str) -> str:
-        return ''.join(ch for ch in unicodedata.normalize('NFD', text) if not unicodedata.combining(ch))
+        return "".join(ch for ch in unicodedata.normalize("NFD", text) if not unicodedata.combining(ch))
 
     oparse = remove_accents(s).upper()
 
     # STUFE 1: Grundlegende phonetische Reduktionen des Deutschen
     if level >= 1:
         replacements_level_1 = [
-            ('SCH', 'S'),   # SCH -> S (Sch-Laut: Schule -> Sule)
-            ('CK', 'K'),    # CK -> K (Stück -> Stük)
-            ('PH', 'F'),    # PH -> F (Philosophie -> Filosofie)
-            ('QU', 'KV'),   # QU -> KV (Quelle -> Kvelle)
-            ('TH', 'T'),    # TH -> T (Theater -> Teater)
-            ('CH', 'H'),    # CH -> H (ich/ach-Laut: Buch -> Buh)
-            ('RH', 'R'),    # RH -> R (Rhein -> Rein)
-            ('DT', 'T'),    # DT -> T (Stadt -> Stat)
-            ('TZ', 'Z'),    # TZ -> Z (Katze -> Kaze)
+            ("SCH", "S"),  # SCH -> S (Sch-Laut: Schule -> Sule)
+            ("CK", "K"),  # CK -> K (Stück -> Stük)
+            ("PH", "F"),  # PH -> F (Philosophie -> Filosofie)
+            ("QU", "KV"),  # QU -> KV (Quelle -> Kvelle)
+            ("TH", "T"),  # TH -> T (Theater -> Teater)
+            ("CH", "H"),  # CH -> H (ich/ach-Laut: Buch -> Buh)
+            ("RH", "R"),  # RH -> R (Rhein -> Rein)
+            ("DT", "T"),  # DT -> T (Stadt -> Stat)
+            ("TZ", "Z"),  # TZ -> Z (Katze -> Kaze)
         ]
         for src, dst in replacements_level_1:
             oparse = oparse.replace(src, dst)
 
         single_level_1 = [
-            ('H', ''),      # H stumm nach Vokal (Ruhe -> Rue)
-            ('V', 'F'),     # V -> F (Vater -> Fater)
-            ('Y', 'I'),     # Y -> I (Gymnasium -> Gimnasium)
+            ("H", ""),  # H stumm nach Vokal (Ruhe -> Rue)
+            ("V", "F"),  # V -> F (Vater -> Fater)
+            ("Y", "I"),  # Y -> I (Gymnasium -> Gimnasium)
         ]
         for src, dst in single_level_1:
             oparse = oparse.replace(src, dst)
@@ -203,16 +271,16 @@ def reduce_letters_german(input_string, strength):
     # STUFE 2: Mittlere Reduktionen (Sibilanten und Konsonantengruppen)
     if level >= 2:
         replacements_level_2 = [
-            ('Z', 'S'),     # Z -> S (TS-Laut vereinfacht zu S)
-            ('C', 'K'),     # C -> K (vor a/o/u)
-            ('X', 'KS'),    # X -> KS
-            ('SS', 'S'),    # SS -> S (Doppel-S vereinfacht)
-            ('KN', 'N'),    # KN -> N (Knecht -> Necht)
-            ('GN', 'N'),    # GN -> N
-            ('PF', 'F'),    # PF -> F (Pferd -> Ferd)
-            ('NG', 'N'),    # NG -> N (Ring -> Rin)
-            ('NK', 'N'),    # NK -> N (Bank -> Ban)
-            ('MB', 'M'),    # MB -> M
+            ("Z", "S"),  # Z -> S (TS-Laut vereinfacht zu S)
+            ("C", "K"),  # C -> K (vor a/o/u)
+            ("X", "KS"),  # X -> KS
+            ("SS", "S"),  # SS -> S (Doppel-S vereinfacht)
+            ("KN", "N"),  # KN -> N (Knecht -> Necht)
+            ("GN", "N"),  # GN -> N
+            ("PF", "F"),  # PF -> F (Pferd -> Ferd)
+            ("NG", "N"),  # NG -> N (Ring -> Rin)
+            ("NK", "N"),  # NK -> N (Bank -> Ban)
+            ("MB", "M"),  # MB -> M
         ]
         for src, dst in replacements_level_2:
             oparse = oparse.replace(src, dst)
@@ -220,21 +288,21 @@ def reduce_letters_german(input_string, strength):
     # STUFE 3: Aggressive Reduktionen (internationale Normalisierung)
     if level >= 3:
         replacements_level_3 = [
-            ('W', 'V'),     # W -> V
-            ('Q', 'K'),     # Q -> K
-            ('D', 'T'),     # D -> T (Auslautverhärtung)
-            ('B', 'P'),     # B -> P (Auslautverhärtung)
-            ('G', 'K'),     # G -> K (Auslautverhärtung)
-            ('F', 'V'),     # F/V Vereinheitlichung
+            ("W", "V"),  # W -> V
+            ("Q", "K"),  # Q -> K
+            ("D", "T"),  # D -> T (Auslautverhärtung)
+            ("B", "P"),  # B -> P (Auslautverhärtung)
+            ("G", "K"),  # G -> K (Auslautverhärtung)
+            ("F", "V"),  # F/V Vereinheitlichung
         ]
         for src, dst in replacements_level_3:
             oparse = oparse.replace(src, dst)
 
-    if orig_style == 'lower':
+    if orig_style == "lower":
         return oparse.lower()
-    if orig_style == 'title':
+    if orig_style == "title":
         return oparse.title()
-    if orig_style == 'mixed':
+    if orig_style == "mixed":
         return oparse.lower()
     return oparse
 

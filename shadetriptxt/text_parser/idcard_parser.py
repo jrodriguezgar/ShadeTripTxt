@@ -3,8 +3,8 @@ import re
 
 # --- Constants ---
 _DNI_NIE_CONTROL_LETTERS = "TRWAGMYFPDXBNJZSQVHLCKE"
-_NIE_PREFIX_MAPPING = {'X': 0, 'Y': 1, 'Z': 2}
-_VALID_NIF_TYPES = {'DNI', 'NIE', 'CIF'}
+_NIE_PREFIX_MAPPING = {"X": 0, "Y": 1, "Z": 2}
+_VALID_NIF_TYPES = {"DNI", "NIE", "CIF"}
 
 # Regex for basic format validation (optional, but highly recommended)
 # DNI: 8 digits + 1 letter
@@ -52,7 +52,7 @@ def nif_padding(p_nif: Optional[str]) -> Optional[str]:
     # This replacement explains why we are doing it:
     # We are removing spaces and hyphens because they are common user input errors
     # and do not affect the NIF/NIE/CIF calculation.
-    nif_raw = p_nif.strip().upper().replace(' ', '').replace('-', '')
+    nif_raw = p_nif.strip().upper().replace(" ", "").replace("-", "")
     nif = nif_raw
 
     # Pad with zeros if the string is shorter than 9 characters
@@ -86,7 +86,7 @@ def nif_padding(p_nif: Optional[str]) -> Optional[str]:
             numbers = nif_raw[1:-1]
             if len(numbers) < 7:
                 nif = f"{first_char}{numbers.zfill(7)}{last_char}"
-    
+
     # Return the padded NIF. We do not validate the control digit here,
     # as that's the responsibility of `nif_parse`.
     return nif
@@ -130,9 +130,9 @@ def nif_parse(nif: Optional[str]) -> Optional[str]:
 
     # Define regex patterns for DNI, NIE, and CIF.
     # The patterns are defined here because they are specific to NIF parsing.
-    pattern_dni = r'^(\d{8})([A-HJ-NP-TV-Z])$'  # 8 digits + letter
-    pattern_nie = r'^([XYZ]\d{7})([A-HJ-NP-TV-Z])$'  # X, Y, Z + 7 digits + letter
-    pattern_cif = r'^([ABCDEFGHJKLMNPQRSUVW]\d{7})([0-9A-J])$'  # Initial letter + 7 digits + control
+    pattern_dni = r"^(\d{8})([A-HJ-NP-TV-Z])$"  # 8 digits + letter
+    pattern_nie = r"^([XYZ]\d{7})([A-HJ-NP-TV-Z])$"  # X, Y, Z + 7 digits + letter
+    pattern_cif = r"^([ABCDEFGHJKLMNPQRSUVW]\d{7})([0-9A-J])$"  # Initial letter + 7 digits + control
 
     # Attempt to match the NIF against the defined patterns.
     # This is the first attempt, checking for already valid formats.
@@ -170,7 +170,7 @@ def nif_parse(nif: Optional[str]) -> Optional[str]:
     # We check the NIE pattern, convert the initial letter to a digit, and then validate.
     elif match_nie:
         number_part, letter_part = match_nie.groups()
-        nie_map = {'X': '0', 'Y': '1', 'Z': '2'}
+        nie_map = {"X": "0", "Y": "1", "Z": "2"}
         # The first letter of an NIE is mapped to a digit for control letter calculation.
         numeric_nie_str = nie_map[number_part[0]] + number_part[1:]
         numbers = int(numeric_nie_str)
@@ -245,33 +245,33 @@ def nif_letter(p_dni: str) -> str:
 
     # 1. Clean the input string: remove spaces, dots, and convert to uppercase for NIE processing.
     #    re.sub is more efficient for multiple replacements.
-    cleaned_dni = re.sub(r'[ .\-]', '', p_dni).upper() # Also remove hyphens for common input variations
+    cleaned_dni = re.sub(r"[ .\-]", "", p_dni).upper()  # Also remove hyphens for common input variations
 
     # 2. Check for valid length AFTER cleaning. A DNI has 8 digits. An NIE has a letter + 7 digits.
     #    So, the numeric part is effectively 8 digits for calculation.
-    if len(cleaned_dni) < 8: # Minimum 8 characters for calculation (X+7 digits, or 8 digits)
+    if len(cleaned_dni) < 8:  # Minimum 8 characters for calculation (X+7 digits, or 8 digits)
         return p_dni
 
     # Define the list of control letters
-    control_letters = 'TRWAGMYFPDXBNJZSQVHLCKE' # String is slightly more efficient than list for char access
+    control_letters = "TRWAGMYFPDXBNJZSQVHLCKE"  # String is slightly more efficient than list for char access
 
     numeric_base = 0
     try:
         # Handle NIEs (Foreigner Identification Number)
         # NIEs start with X, Y, or Z. These correspond to 0, 1, 2 for calculation.
-        if cleaned_dni.startswith('X'):
-            numeric_base = int('0' + cleaned_dni[1:8]) # Replace 'X' with '0'
-        elif cleaned_dni.startswith('Y'):
-            numeric_base = int('1' + cleaned_dni[1:8]) # Replace 'Y' with '1'
-        elif cleaned_dni.startswith('Z'):
-            numeric_base = int('2' + cleaned_dni[1:8]) # Replace 'Z' with '2'
+        if cleaned_dni.startswith("X"):
+            numeric_base = int("0" + cleaned_dni[1:8])  # Replace 'X' with '0'
+        elif cleaned_dni.startswith("Y"):
+            numeric_base = int("1" + cleaned_dni[1:8])  # Replace 'Y' with '1'
+        elif cleaned_dni.startswith("Z"):
+            numeric_base = int("2" + cleaned_dni[1:8])  # Replace 'Z' with '2'
         else:
             # Assume it's a DNI (8 digits)
-            numeric_base = int(cleaned_dni[:8]) # Take first 8 chars, in case input includes an existing letter
+            numeric_base = int(cleaned_dni[:8])  # Take first 8 chars, in case input includes an existing letter
 
         # Ensure the numeric base is a valid number after conversion.
         # This implicitly handles cases where cleaned_dni[1:8] might not be fully numeric.
-        if not isinstance(numeric_base, int): # Should not happen if int() succeeded but as a safeguard
+        if not isinstance(numeric_base, int):  # Should not happen if int() succeeded but as a safeguard
             return p_dni
 
     except ValueError:
@@ -453,17 +453,17 @@ def is_valid_cif(cif_value: str) -> bool:
     try:
         # Example: Simple sum check (not a real CIF algorithm)
         total_sum = sum(int(digit) for digit in numerical_part)
-        if first_letter in "ABCDEFGHJ": # Example types with digit control
+        if first_letter in "ABCDEFGHJ":  # Example types with digit control
             expected_control = str(total_sum % 10)
             return expected_control == control_char
-        elif first_letter in "KNPQRSUVW": # Example types with letter control
+        elif first_letter in "KNPQRSUVW":  # Example types with letter control
             # This is a highly simplified and likely incorrect calculation
-            expected_control_letter = chr(65 + (total_sum % 10)) # A-J based on modulo
+            expected_control_letter = chr(65 + (total_sum % 10))  # A-J based on modulo
             return expected_control_letter == control_char
         else:
-            return False # Unknown CIF type
+            return False  # Unknown CIF type
     except ValueError:
-        return False # Not purely numeric part
+        return False  # Not purely numeric part
     # --- End Placeholder ---
 
 
@@ -508,35 +508,35 @@ def validate_spanish_nif(nif_type: str, nif_value: str) -> bool:
     if not isinstance(nif_value, str):
         raise TypeError("NIF value must be a string.")
 
-    nif_type = nif_type.upper() # Normalize type input
+    nif_type = nif_type.upper()  # Normalize type input
 
     if nif_type not in _VALID_NIF_TYPES:
         raise ValueError(f"Invalid NIF type. Expected {_VALID_NIF_TYPES}.")
 
-    if nif_type == 'DNI':
+    if nif_type == "DNI":
         return is_valid_dni(nif_value)
-    elif nif_type == 'NIE':
+    elif nif_type == "NIE":
         return is_valid_nie(nif_value)
-    elif nif_type == 'CIF':
+    elif nif_type == "CIF":
         return is_valid_cif(nif_value)
     # This branch should theoretically not be reached due to the initial type check.
     return False
 
 
-def european_nif(p_iparse, p_find_letter): # 2
+def european_nif(p_iparse, p_find_letter):  # 2
     """
     Parses and validates a National Identification Number (NIF) or similar identifier for various European countries.
-    
+
     This function processes the input string by removing spaces, converting to uppercase, and ensuring it has a valid
     country code prefix. For Spain (ES), it uses the Spanish NIF validation functions (nif_parse, is_valid_dni, is_valid_nie, is_valid_cif)
     to validate the identifier, optionally computing and appending the control letter if the numeric part is provided and p_find_letter is True.
     For other countries, it checks against predefined regex patterns.
-    
+
     Args:
         p_iparse (str): The input string representing the identifier to parse. It may include or exclude a country code prefix.
         p_find_letter (bool): If True and the identifier is for Spain (ES) with a numeric part of 7-8 digits, attempts to
                                 compute and append the control letter using nif_letter().
-    
+
     Returns:
         tuple or None: A tuple containing (typenif, country, code, nif_value) where:
             - typenif (str): The type of identifier (e.g., 'DNI', 'NIE', 'CIF', 'NIF').
@@ -544,7 +544,7 @@ def european_nif(p_iparse, p_find_letter): # 2
             - code (str): The two-letter country code (e.g., 'ES').
             - nif_value (str): The identifier value, potentially without the country code prefix depending on the country.
         Returns None if the input is invalid or does not match any pattern.
-    
+
     Notes:
         - Supported countries include ES (Spain), DE (Germany), FR (France), PT (Portugal), IT (Italy), EL (Greece),
             AT (Austria), BE (Belgium), BG (Bulgaria), HR (Croatia), CY (Cyprus), CZ (Czech Republic), DK (Denmark),
@@ -556,103 +556,133 @@ def european_nif(p_iparse, p_find_letter): # 2
         - Uses the 're' module for regex matching.
     """
     # 1. Validación inicial y preparación de la cadena
-    if not p_iparse: # 3
-        return None # 4
+    if not p_iparse:  # 3
+        return None  # 4
 
-    oparse = p_iparse.replace(' ', '').upper() # 5
-    if not oparse: # 6
-        return None # 7
+    oparse = p_iparse.replace(" ", "").upper()  # 5
+    if not oparse:  # 6
+        return None  # 7
 
     # 2. Manejo de prefijos de país
-    valid_country_codes = {'ES', 'DE', 'FR', 'PT', 'IT', 'EL', 'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', # 8
-                           'FI', 'HU', 'IE', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'RO', 'SK', 'SI', 'SE', 'GB', 'UK'} # 9
+    valid_country_codes = {
+        "ES",
+        "DE",
+        "FR",
+        "PT",
+        "IT",
+        "EL",
+        "AT",
+        "BE",
+        "BG",
+        "HR",
+        "CY",
+        "CZ",
+        "DK",
+        "EE",  # 8
+        "FI",
+        "HU",
+        "IE",
+        "LV",
+        "LT",
+        "LU",
+        "MT",
+        "NL",
+        "PL",
+        "RO",
+        "SK",
+        "SI",
+        "SE",
+        "GB",
+        "UK",
+    }  # 9
 
-    country_code_prefix = oparse[:2] # 10
-    if country_code_prefix not in valid_country_codes: # 11
-        oparse = 'ES' + oparse # 12
-        country_code_prefix = 'ES' # Actualizamos el prefijo para la lógica posterior # 13
+    country_code_prefix = oparse[:2]  # 10
+    if country_code_prefix not in valid_country_codes:  # 11
+        oparse = "ES" + oparse  # 12
+        country_code_prefix = "ES"  # Actualizamos el prefijo para la lógica posterior # 13
 
     # 3. Lógica específica para España (ES)
-    if country_code_prefix == 'ES': # 14
-        nif_value = oparse[2:] # 15
-        if p_find_letter and nif_value.isdigit() and 6 < len(nif_value) < 9: # 16
-            nif_value = nif_letter(nif_value) # 17
+    if country_code_prefix == "ES":  # 14
+        nif_value = oparse[2:]  # 15
+        if p_find_letter and nif_value.isdigit() and 6 < len(nif_value) < 9:  # 16
+            nif_value = nif_letter(nif_value)  # 17
         # Validate using Spanish NIF functions
         validated_nif = nif_parse(nif_value)
         if validated_nif is None:
             return None
         # Determine type
         if is_valid_dni(validated_nif):
-            typenif = 'DNI'
+            typenif = "DNI"
         elif is_valid_nie(validated_nif):
-            typenif = 'NIE'
+            typenif = "NIE"
         elif is_valid_cif(validated_nif):
-            typenif = 'CIF'
+            typenif = "CIF"
         else:
             return None  # Should not happen if nif_parse succeeded
-        return (typenif, 'SPAIN', 'ES', validated_nif)
-    elif country_code_prefix == 'PT' and len(oparse) == 9 and oparse.isdigit(): # Para Portugal si no tiene el prefijo inicial # 19
-        oparse = 'PT' + oparse # Aseguramos que Portugal siempre tenga su prefijo para los patrones # 20
+        return (typenif, "SPAIN", "ES", validated_nif)
+    elif country_code_prefix == "PT" and len(oparse) == 9 and oparse.isdigit():  # Para Portugal si no tiene el prefijo inicial # 19
+        oparse = "PT" + oparse  # Aseguramos que Portugal siempre tenga su prefijo para los patrones # 20
 
     # 4. Patrones y metadatos de los países
-    patterns = { # 21
-        'ES': [ # 22
-            (r'ES[0-9]{8}[A-Z]', 'DNI', 'SPAIN', 'ES'), # 23
-            (r'ES[K-M][0-9]{8}', 'NIE', 'SPAIN', 'ES'), # 24
-            (r'ES[X-Z][0-9]{7}[A-Z]', 'NIE', 'SPAIN', 'ES'), # 25
-            (r'ES[A-H|J|U-V][0-9]{8}', 'CIF', 'SPAIN', 'ES'), # 26
-            (r'ES[N|P-S|W][0-9]{7}[A-Z]', 'CIF', 'SPAIN', 'ES') # 27
+    patterns = {  # 21
+        "ES": [  # 22
+            (r"ES[0-9]{8}[A-Z]", "DNI", "SPAIN", "ES"),  # 23
+            (r"ES[K-M][0-9]{8}", "NIE", "SPAIN", "ES"),  # 24
+            (r"ES[X-Z][0-9]{7}[A-Z]", "NIE", "SPAIN", "ES"),  # 25
+            (r"ES[A-H|J|U-V][0-9]{8}", "CIF", "SPAIN", "ES"),  # 26
+            (r"ES[N|P-S|W][0-9]{7}[A-Z]", "CIF", "SPAIN", "ES"),  # 27
         ],
-        'DE': [(r'DE[0-9]{9}', 'NIF', 'GERMANY', 'DE')], # 28
-        'FR': [(r'FR[A-Z0-9]{2}[0-9]{9}', 'NIF', 'FRANCE', 'FR')], # 29
-        'PT': [(r'PT[0-9]{9}', 'NIF', 'PORTUGAL', 'PT')], # 30
-        'IT': [(r'IT[0-9]{11}', 'NIF', 'ITALY', 'IT')], # 31
-        'EL': [(r'EL[0-9]{9}', 'NIF', 'GREECE', 'EL')], # 32
-        'AT': [(r'ATU[0-9]{8}', 'NIF', 'AUSTRIA', 'AT')], # 33
-        'BE': [(r'BE0[0-9]{9}', 'NIF', 'BELGIUM', 'BE')], # 34
-        'BG': [(r'BG[0-9]{9,10}', 'NIF', 'BULGARIA', 'BG')], # 35
-        'HR': [(r'HR[0-9]{11}', 'NIF', 'CROATIA', 'HR')], # 36
-        'CY': [(r'CY[0-9]{8}[A-Z]', 'NIF', 'CYPRUS', 'CY')], # 37
-        'CZ': [(r'CZ[0-9]{8,10}', 'NIF', 'CZECH REPUBLIC', 'CZ')], # 38
-        'DK': [(r'DK[0-9]{8}', 'NIF', 'DENMARK', 'DK')], # 39
-        'EE': [(r'EE[0-9]{9}', 'NIF', 'ESTONIA', 'EE')], # 40
-        'FI': [(r'FI[0-9]{8}', 'NIF', 'FINLAND', 'FI')], # 41
-        'HU': [(r'HU[0-9]{8}', 'NIF', 'HUNGARY', 'HU')], # 42
-        'IE': [(r'IE[0-9]{7}[A-Z]{1,2}', 'NIF', 'IRELAND', 'IE')], # 43
-        'LV': [(r'LV[0-9]{11}', 'NIF', 'LATVIA', 'LV')], # 44
-        'LT': [(r'LT[0-9]{9,12}', 'NIF', 'LITHUANIA', 'LT')], # 45
-        'LU': [(r'LU[0-9]{8}', 'NIF', 'LUXEMBOURG', 'LU')], # 46
-        'MT': [(r'MT[0-9]{8}', 'NIF', 'MALTA', 'MT')], # 47
-        'NL': [(r'NL[0-9]{9}B[0-9]{2}', 'NIF', 'NETHERLANDS', 'NL')], # 48
-        'PL': [(r'PL[0-9]{10}', 'NIF', 'POLAND', 'PL')], # 49
-        'RO': [(r'RO[0-9]{2,10}', 'NIF', 'ROMANIA', 'RO')], # 50
-        'SK': [(r'SK[0-9]{10}', 'NIF', 'SLOVAKIA', 'SK')], # 51
-        'SI': [(r'SI[0-9]{8}', 'NIF', 'SLOVENIA', 'SI')], # 52
-        'SE': [(r'SE[0-9]{10}[0-1]{2}', 'NIF', 'SWEDEN', 'SE')], # 53
-        'GB': [(r'GB[0-9]{9}', 'NIF', 'UNITED KINGDOM', 'GB')] # 54
+        "DE": [(r"DE[0-9]{9}", "NIF", "GERMANY", "DE")],  # 28
+        "FR": [(r"FR[A-Z0-9]{2}[0-9]{9}", "NIF", "FRANCE", "FR")],  # 29
+        "PT": [(r"PT[0-9]{9}", "NIF", "PORTUGAL", "PT")],  # 30
+        "IT": [(r"IT[0-9]{11}", "NIF", "ITALY", "IT")],  # 31
+        "EL": [(r"EL[0-9]{9}", "NIF", "GREECE", "EL")],  # 32
+        "AT": [(r"ATU[0-9]{8}", "NIF", "AUSTRIA", "AT")],  # 33
+        "BE": [(r"BE0[0-9]{9}", "NIF", "BELGIUM", "BE")],  # 34
+        "BG": [(r"BG[0-9]{9,10}", "NIF", "BULGARIA", "BG")],  # 35
+        "HR": [(r"HR[0-9]{11}", "NIF", "CROATIA", "HR")],  # 36
+        "CY": [(r"CY[0-9]{8}[A-Z]", "NIF", "CYPRUS", "CY")],  # 37
+        "CZ": [(r"CZ[0-9]{8,10}", "NIF", "CZECH REPUBLIC", "CZ")],  # 38
+        "DK": [(r"DK[0-9]{8}", "NIF", "DENMARK", "DK")],  # 39
+        "EE": [(r"EE[0-9]{9}", "NIF", "ESTONIA", "EE")],  # 40
+        "FI": [(r"FI[0-9]{8}", "NIF", "FINLAND", "FI")],  # 41
+        "HU": [(r"HU[0-9]{8}", "NIF", "HUNGARY", "HU")],  # 42
+        "IE": [(r"IE[0-9]{7}[A-Z]{1,2}", "NIF", "IRELAND", "IE")],  # 43
+        "LV": [(r"LV[0-9]{11}", "NIF", "LATVIA", "LV")],  # 44
+        "LT": [(r"LT[0-9]{9,12}", "NIF", "LITHUANIA", "LT")],  # 45
+        "LU": [(r"LU[0-9]{8}", "NIF", "LUXEMBOURG", "LU")],  # 46
+        "MT": [(r"MT[0-9]{8}", "NIF", "MALTA", "MT")],  # 47
+        "NL": [(r"NL[0-9]{9}B[0-9]{2}", "NIF", "NETHERLANDS", "NL")],  # 48
+        "PL": [(r"PL[0-9]{10}", "NIF", "POLAND", "PL")],  # 49
+        "RO": [(r"RO[0-9]{2,10}", "NIF", "ROMANIA", "RO")],  # 50
+        "SK": [(r"SK[0-9]{10}", "NIF", "SLOVAKIA", "SK")],  # 51
+        "SI": [(r"SI[0-9]{8}", "NIF", "SLOVENIA", "SI")],  # 52
+        "SE": [(r"SE[0-9]{10}[0-1]{2}", "NIF", "SWEDEN", "SE")],  # 53
+        "GB": [(r"GB[0-9]{9}", "NIF", "UNITED KINGDOM", "GB")],  # 54
     }
 
     # 5. Búsqueda y retorno del NIF
-    country_code_to_check = oparse[:2] # 55
+    country_code_to_check = oparse[:2]  # 55
 
-    if country_code_to_check in patterns: # 56
-        for pattern, typenif, country, code in patterns[country_code_to_check]: # 57
-            if re.match(pattern, oparse): # 58
+    if country_code_to_check in patterns:  # 56
+        for pattern, typenif, country, code in patterns[country_code_to_check]:  # 57
+            if re.match(pattern, oparse):  # 58
                 # Extraer NIF sin el código de país si es necesario
-                nif_value = oparse[2:] if code not in ['PT', 'IT', 'EL'] else oparse # 59
-                return (typenif, country, code, nif_value) # 60
+                nif_value = oparse[2:] if code not in ["PT", "IT", "EL"] else oparse  # 59
+                return (typenif, country, code, nif_value)  # 60
 
-    return None # 61
+    return None  # 61
 
 
 # ---------------------------------------------------------------------------
 # Extended ID Validations for Other Countries
 # ---------------------------------------------------------------------------
 
+
 def is_valid_ssn(ssn: str) -> bool:
     """
     Validates a United States Social Security Number (SSN).
-    
+
     Rules:
     - 9 digits.
     - Not starting with 000, 666, or 900-999.
@@ -661,14 +691,14 @@ def is_valid_ssn(ssn: str) -> bool:
     """
     if not isinstance(ssn, str):
         return False
-    clean_ssn = re.sub(r'\D', '', ssn)
+    clean_ssn = re.sub(r"\D", "", ssn)
     if len(clean_ssn) != 9:
         return False
-    if clean_ssn.startswith('000') or clean_ssn.startswith('666') or clean_ssn.startswith('9'):
+    if clean_ssn.startswith("000") or clean_ssn.startswith("666") or clean_ssn.startswith("9"):
         return False
-    if clean_ssn[3:5] == '00':
+    if clean_ssn[3:5] == "00":
         return False
-    if clean_ssn[5:9] == '0000':
+    if clean_ssn[5:9] == "0000":
         return False
     return True
 
@@ -676,15 +706,15 @@ def is_valid_ssn(ssn: str) -> bool:
 def is_valid_cpf(cpf: str) -> bool:
     """
     Validates a Brazilian CPF (Cadastro de Pessoas Físicas).
-    
+
     Uses the two-digit checksum validation.
     """
     if not isinstance(cpf, str):
         return False
-    clean_cpf = re.sub(r'\D', '', cpf)
+    clean_cpf = re.sub(r"\D", "", cpf)
     if len(clean_cpf) != 11 or clean_cpf == clean_cpf[0] * 11:
         return False
-    
+
     # Validate first digit
     for i in range(9, 11):
         value = sum((int(clean_cpf[num]) * ((i + 1) - num) for num in range(0, i)))
@@ -700,17 +730,17 @@ def is_valid_cnpj(cnpj: str) -> bool:
     """
     if not isinstance(cnpj, str):
         return False
-    clean_cnpj = re.sub(r'\D', '', cnpj)
+    clean_cnpj = re.sub(r"\D", "", cnpj)
     if len(clean_cnpj) != 14 or clean_cnpj == clean_cnpj[0] * 14:
         return False
-    
+
     # Validate first digit
     weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
     sum1 = sum(int(clean_cnpj[i]) * weights1[i] for i in range(12))
     digit1 = 0 if sum1 % 11 < 2 else 11 - (sum1 % 11)
     if int(clean_cnpj[12]) != digit1:
         return False
-        
+
     # Validate second digit
     weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]
     sum2 = sum(int(clean_cnpj[i]) * weights2[i] for i in range(13))
@@ -721,15 +751,15 @@ def is_valid_cnpj(cnpj: str) -> bool:
 def is_valid_bsn(bsn: str) -> bool:
     """
     Validates a Netherlands BSN (Burgerservicenummer).
-    
+
     Uses logic known as the '11-test'.
     """
     if not isinstance(bsn, str):
         return False
-    clean_bsn = re.sub(r'\D', '', bsn)
+    clean_bsn = re.sub(r"\D", "", bsn)
     if len(clean_bsn) != 9:
         return False
-    
+
     total = 0
     for i in range(8):
         total += int(clean_bsn[i]) * (9 - i)
@@ -740,27 +770,91 @@ def is_valid_bsn(bsn: str) -> bool:
 def is_valid_codice_fiscale(cf: str) -> bool:
     """
     Validates an Italian Codice Fiscale.
-    
+
     Validates the format and the control character (character 16)
     using the official odd/even positional algorithm.
     """
     if not isinstance(cf, str):
         return False
     cf = cf.upper().strip()
-    if not re.match(r'^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$', cf):
+    if not re.match(r"^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$", cf):
         return False
 
     _ODD_VALUES = {
-        '0': 1, '1': 0, '2': 5, '3': 7, '4': 9, '5': 13, '6': 15, '7': 17, '8': 19, '9': 21,
-        'A': 1, 'B': 0, 'C': 5, 'D': 7, 'E': 9, 'F': 13, 'G': 15, 'H': 17, 'I': 19, 'J': 21,
-        'K': 2, 'L': 4, 'M': 18, 'N': 20, 'O': 11, 'P': 3, 'Q': 6, 'R': 8, 'S': 12, 'T': 14,
-        'U': 16, 'V': 10, 'W': 22, 'X': 25, 'Y': 24, 'Z': 23,
+        "0": 1,
+        "1": 0,
+        "2": 5,
+        "3": 7,
+        "4": 9,
+        "5": 13,
+        "6": 15,
+        "7": 17,
+        "8": 19,
+        "9": 21,
+        "A": 1,
+        "B": 0,
+        "C": 5,
+        "D": 7,
+        "E": 9,
+        "F": 13,
+        "G": 15,
+        "H": 17,
+        "I": 19,
+        "J": 21,
+        "K": 2,
+        "L": 4,
+        "M": 18,
+        "N": 20,
+        "O": 11,
+        "P": 3,
+        "Q": 6,
+        "R": 8,
+        "S": 12,
+        "T": 14,
+        "U": 16,
+        "V": 10,
+        "W": 22,
+        "X": 25,
+        "Y": 24,
+        "Z": 23,
     }
     _EVEN_VALUES = {
-        '0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
-        'A': 0, 'B': 1, 'C': 2, 'D': 3, 'E': 4, 'F': 5, 'G': 6, 'H': 7, 'I': 8, 'J': 9,
-        'K': 10, 'L': 11, 'M': 12, 'N': 13, 'O': 14, 'P': 15, 'Q': 16, 'R': 17, 'S': 18, 'T': 19,
-        'U': 20, 'V': 21, 'W': 22, 'X': 23, 'Y': 24, 'Z': 25,
+        "0": 0,
+        "1": 1,
+        "2": 2,
+        "3": 3,
+        "4": 4,
+        "5": 5,
+        "6": 6,
+        "7": 7,
+        "8": 8,
+        "9": 9,
+        "A": 0,
+        "B": 1,
+        "C": 2,
+        "D": 3,
+        "E": 4,
+        "F": 5,
+        "G": 6,
+        "H": 7,
+        "I": 8,
+        "J": 9,
+        "K": 10,
+        "L": 11,
+        "M": 12,
+        "N": 13,
+        "O": 14,
+        "P": 15,
+        "Q": 16,
+        "R": 17,
+        "S": 18,
+        "T": 19,
+        "U": 20,
+        "V": 21,
+        "W": 22,
+        "X": 23,
+        "Y": 24,
+        "Z": 25,
     }
 
     total = 0
@@ -773,27 +867,27 @@ def is_valid_codice_fiscale(cf: str) -> bool:
 def validate_id_document(id_str: str, country_code: str) -> bool:
     """
     Dispatch validation to the appropriate country-specific logic.
-    
+
     Args:
         id_str: The identification string to validate.
         country_code: ISO 3166-1 alpha-2 country code (e.g., 'US', 'BR', 'ES').
-        
+
     Returns:
         bool: True if valid, False otherwise.
     """
     if not isinstance(id_str, str) or not isinstance(country_code, str):
         return False
     code = country_code.upper()
-    
+
     _VALIDATORS = {
-        'ES': lambda s: nif_parse(s) is not None,
-        'US': is_valid_ssn,
-        'NL': is_valid_bsn,
-        'IT': is_valid_codice_fiscale,
-        'MX': is_valid_curp,
-        'CL': is_valid_rut,
-        'GB': is_valid_nino,
-        'PT': is_valid_portuguese_nif,
+        "ES": lambda s: nif_parse(s) is not None,
+        "US": is_valid_ssn,
+        "NL": is_valid_bsn,
+        "IT": is_valid_codice_fiscale,
+        "MX": is_valid_curp,
+        "CL": is_valid_rut,
+        "GB": is_valid_nino,
+        "PT": is_valid_portuguese_nif,
     }
 
     validator = _VALIDATORS.get(code)
@@ -801,8 +895,8 @@ def validate_id_document(id_str: str, country_code: str) -> bool:
         return validator(id_str)
 
     # Brazil: auto-detect CPF vs CNPJ
-    if code == 'BR':
-        clean = re.sub(r'\D', '', id_str)
+    if code == "BR":
+        clean = re.sub(r"\D", "", id_str)
         if len(clean) == 11:
             return is_valid_cpf(id_str)
         elif len(clean) == 14:
@@ -810,8 +904,8 @@ def validate_id_document(id_str: str, country_code: str) -> bool:
         return False
 
     # Argentina: CUIL/CUIT
-    if code == 'AR':
-        clean = re.sub(r'\D', '', id_str)
+    if code == "AR":
+        clean = re.sub(r"\D", "", id_str)
         if len(clean) == 11:
             return is_valid_cuil(id_str)
         # Short DNI (7-8 digits, no checksum)
@@ -820,8 +914,8 @@ def validate_id_document(id_str: str, country_code: str) -> bool:
         return False
 
     # Colombia: Cédula (6-10 digits, no official checksum)
-    if code == 'CO':
-        clean = re.sub(r'\D', '', id_str)
+    if code == "CO":
+        clean = re.sub(r"\D", "", id_str)
         return 6 <= len(clean) <= 10
 
     # Fallback to european_nif for other EU countries
@@ -831,6 +925,7 @@ def validate_id_document(id_str: str, country_code: str) -> bool:
 # ---------------------------------------------------------------------------
 # Latin America ID Validations
 # ---------------------------------------------------------------------------
+
 
 def is_valid_curp(curp: str) -> bool:
     """
@@ -842,10 +937,7 @@ def is_valid_curp(curp: str) -> bool:
     if not isinstance(curp, str):
         return False
     curp = curp.upper().strip()
-    return bool(re.match(
-        r'^[A-Z]{4}\d{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$',
-        curp
-    ))
+    return bool(re.match(r"^[A-Z]{4}\d{6}[HM][A-Z]{2}[B-DF-HJ-NP-TV-Z]{3}[A-Z0-9]\d$", curp))
 
 
 def is_valid_rut(rut: str) -> bool:
@@ -857,7 +949,7 @@ def is_valid_rut(rut: str) -> bool:
     """
     if not isinstance(rut, str):
         return False
-    clean = re.sub(r'[\.\-\s]', '', rut).upper()
+    clean = re.sub(r"[\.\-\s]", "", rut).upper()
     if len(clean) < 2:
         return False
 
@@ -876,9 +968,9 @@ def is_valid_rut(rut: str) -> bool:
     remainder = 11 - (total % 11)
 
     if remainder == 11:
-        expected = '0'
+        expected = "0"
     elif remainder == 10:
-        expected = 'K'
+        expected = "K"
     else:
         expected = str(remainder)
 
@@ -894,7 +986,7 @@ def is_valid_cuil(cuil: str) -> bool:
     """
     if not isinstance(cuil, str):
         return False
-    clean = re.sub(r'\D', '', cuil)
+    clean = re.sub(r"\D", "", cuil)
     if len(clean) != 11:
         return False
 
@@ -916,6 +1008,7 @@ def is_valid_cuil(cuil: str) -> bool:
 # Additional European ID Validations
 # ---------------------------------------------------------------------------
 
+
 def is_valid_nino(nino: str) -> bool:
     """
     Validates a UK National Insurance Number (NINO).
@@ -926,16 +1019,16 @@ def is_valid_nino(nino: str) -> bool:
     """
     if not isinstance(nino, str):
         return False
-    nino = nino.upper().replace(' ', '').replace('-', '')
-    if not re.match(r'^[A-Z]{2}\d{6}[A-D]$', nino):
+    nino = nino.upper().replace(" ", "").replace("-", "")
+    if not re.match(r"^[A-Z]{2}\d{6}[A-D]$", nino):
         return False
     prefix = nino[:2]
-    invalid_prefixes = {'BG', 'GB', 'NK', 'KN', 'TN', 'NT', 'ZZ'}
+    invalid_prefixes = {"BG", "GB", "NK", "KN", "TN", "NT", "ZZ"}
     if prefix in invalid_prefixes:
         return False
-    if prefix[0] in 'DFIQUV':
+    if prefix[0] in "DFIQUV":
         return False
-    if prefix[1] in 'DFIQUVO':
+    if prefix[1] in "DFIQUVO":
         return False
     return True
 
@@ -949,10 +1042,10 @@ def is_valid_portuguese_nif(nif: str) -> bool:
     """
     if not isinstance(nif, str):
         return False
-    clean = re.sub(r'\D', '', nif)
+    clean = re.sub(r"\D", "", nif)
     if len(clean) != 9:
         return False
-    if clean[0] not in '123456789':
+    if clean[0] not in "123456789":
         return False
 
     weights = [9, 8, 7, 6, 5, 4, 3, 2]

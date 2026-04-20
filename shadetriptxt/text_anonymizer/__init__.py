@@ -49,23 +49,25 @@ from .config import (
     create_sample_config,
 )
 
-from .cli import (
+from shadetriptxt.utils.cli_base import (
     CLIBase,
+    CLIConfig,
     CLIResult,
-    Subcommand,
     OutputFormat,
-    Colors,
+    Subcommand,
+    confirm_action,
+    print_error,
+    print_info,
+    print_progress,
+    print_success,
+    print_summary,
+    print_table,
+    print_warning,
+)
+from .cli import (
     create_cli,
     run_api,
     main,
-    print_success,
-    print_error,
-    print_warning,
-    print_info,
-    print_table,
-    print_summary,
-    print_progress,
-    confirm_action,
 )
 
 __all__ = [
@@ -94,10 +96,10 @@ __all__ = [
     "create_sample_config",
     # CLI
     "CLIBase",
+    "CLIConfig",
     "CLIResult",
     "Subcommand",
     "OutputFormat",
-    "Colors",
     "create_cli",
     "run_api",
     "main",
