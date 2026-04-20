@@ -130,6 +130,14 @@ celerybeat.pid
 # Copilot task files
 .copilot/
 
+# Copilot workspace config (keep .github/workflows/)
+.github/agents/
+.github/hooks/
+.github/instructions/
+.github/prompts/
+.github/skills/
+.github/README.md
+
 # Environments
 .env
 .venv
