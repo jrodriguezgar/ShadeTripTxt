@@ -130,13 +130,6 @@ celerybeat.pid
 # Copilot task files
 .copilot/
 
-# Copilot workspace config (keep .github/workflows/)
-.github/agents/
-.github/hooks/
-.github/instructions/
-.github/prompts/
-.github/skills/
-.github/README.md
 
 # Environments
 .env
@@ -234,6 +227,21 @@ doc/
 # Specific files
 how_to_use_it.py
 
+# ── .github: only GitHub-essential files ─────────────────────────────
+.github/*
+!.github/workflows/
+!.github/ISSUE_TEMPLATE/
+!.github/PULL_REQUEST_TEMPLATE.md
+!.github/copilot-instructions.md
+
+# GitHub Copilot / internal config (not published)
+# Keep published: .github/workflows/, .github/ISSUE_TEMPLATE/, .github/PULL_REQUEST_TEMPLATE.md
+.github/agents/
+.github/hooks/
+.github/instructions/
+.github/prompts/
+.github/skills/
+.github/copilot-instructions.md
 
 # Excluir directorios de proyecto
 .vscode/
